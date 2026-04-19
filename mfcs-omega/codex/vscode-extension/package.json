@@ -1,0 +1,23 @@
+{
+  "name": "mfcs-omega-codex",
+  "displayName": "MFCS OMEGA Codex",
+  "version": "0.0.1",
+  "publisher": "mohammad",
+  "engines": {
+    "vscode": "^1.80.0"
+  },
+  "main": "./dist/extension.js",
+  "activationEvents": ["onCommand:mfcsOmega.openCodex"],
+  "contributes": {
+    "commands": [
+      {
+        "command": "mfcsOmega.openCodex",
+        "title": "Open MFCS–OMEGA Codex"
+      }
+    ]
+  },
+  "scripts": {
+    "build": "tsc -p ./",
+    "watch": "tsc -watch -p ./"
+  }
+}

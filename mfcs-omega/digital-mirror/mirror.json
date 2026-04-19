@@ -1,0 +1,11 @@
+{
+  "version": "0.1.0",
+  "source": "mfcs-omega",
+  "views": [
+    {
+      "id": "mfcs-core",
+      "title": "MFCS Core",
+      "description": "Formal spec, proofs, and TLC traces."
+    }
+  ]
+}
