@@ -1,0 +1,125 @@
+diff --git a/mfcs-omega/src/lib/oracleKernelCore.ts b/mfcs-omega/src/lib/oracleKernelCore.ts
+--- a/mfcs-omega/src/lib/oracleKernelCore.ts
++++ b/mfcs-omega/src/lib/oracleKernelCore.ts
+@@
+-const PHI_FACETS = ['Facet-A', 'Facet-C'];
++const PHI_FACETS = ['Facet-A', 'Facet-C'] as const;
+@@
+-    const lawCompliance = {
++    const lawCompliance = {
+       lawId: 'phi-A' as const,
++      // TODO(phi-A): near-recursion is a formal premise of the law, but this
++      // kernel currently does not compute Distance(f^n(x), x) <= ε over
++      // 1..MaxN. Until that iteration is modeled or provided as an input,
++      // report false explicitly rather than implying the check was performed.
+       nearRecursion: false,
+       irreversible: state.mode === 'BUILD_COMPRESS' || state.mode === 'FUSION',
+       inAttractor: inPhiAttractor,
+diff --git a/mfcs-omega/src/lib/oracleKernelCore.test.ts b/mfcs-omega/src/lib/oracleKernelCore.test.ts
+--- a/mfcs-omega/src/lib/oracleKernelCore.test.ts
++++ b/mfcs-omega/src/lib/oracleKernelCore.test.ts
+@@
+ import assert from 'node:assert/strict';
+ import { OracleKernelCore } from './oracleKernelCore';
+ 
+ const core = new OracleKernelCore(2);
+@@
+ assert.equal(facetA.inPhiAttractor, true);
+ assert.equal(facetA.attractorId, 'G_phi');
++assert.equal(facetA.lawCompliance?.lawId, 'phi-A');
++assert.equal(facetA.lawCompliance?.irreversible, true);
++assert.equal(facetA.lawCompliance?.nearRecursion, false);
++assert.equal(facetA.lawCompliance?.inAttractor, true);
+ 
+ const facetB = core.evaluate({
+@@
+ assert.equal(facetB.inPhiAttractor, false);
+ assert.equal(facetB.attractorId, undefined);
++assert.equal(facetB.lawCompliance?.lawId, 'phi-A');
++assert.equal(facetB.lawCompliance?.irreversible, false);
++assert.equal(facetB.lawCompliance?.nearRecursion, false);
++assert.equal(facetB.lawCompliance?.inAttractor, false);
++
++const facetC = core.evaluate({
++  W: 1,
++  inside: true,
++  margin: 0.1,
++  gap: 0,
++  kink: null,
++  weights: { C_r: 1 },
++  classification: { facet: 'Facet-C', label: 'C', M_min: 2 },
++  state: { mode: 'BUILD_COMPRESS' },
++});
++assert.equal(facetC.inPhiAttractor, true);
++assert.equal(facetC.attractorId, 'G_phi');
++assert.equal(facetC.lawCompliance?.irreversible, true);
++assert.equal(facetC.lawCompliance?.nearRecursion, false);
++assert.equal(facetC.lawCompliance?.inAttractor, true);
++
++const phiOutside = core.evaluate({
++  W: 1,
++  inside: false,
++  margin: 0.1,
++  gap: 0,
++  kink: null,
++  weights: { C_r: 1 },
++  classification: { facet: 'Facet-C', label: 'C', M_min: 2 },
++  state: { mode: 'BUILD_COMPRESS' },
++});
++assert.equal(phiOutside.inPhiAttractor, false);
++assert.equal(phiOutside.attractorId, undefined);
++assert.equal(phiOutside.lawCompliance?.irreversible, true);
++assert.equal(phiOutside.lawCompliance?.nearRecursion, false);
++assert.equal(phiOutside.lawCompliance?.inAttractor, false);
++
++const fusion = core.evaluate({
++  W: 1,
++  inside: true,
++  margin: 0.1,
++  gap: 0,
++  kink: null,
++  weights: { C_r: 1 },
++  classification: { facet: 'Facet-A', label: 'A', M_min: 2 },
++  state: { mode: 'FUSION' },
++});
++assert.equal(fusion.inPhiAttractor, true);
++assert.equal(fusion.attractorId, 'G_phi');
++assert.equal(fusion.lawCompliance?.irreversible, true);
++assert.equal(fusion.lawCompliance?.nearRecursion, false);
++assert.equal(fusion.lawCompliance?.inAttractor, true);
+ 
+ console.log('oracleKernelCore attractor tests passed');
+diff --git a/mfcs-omega/src/pages/OracleWorkbenchPage.tsx b/mfcs-omega/src/pages/OracleWorkbenchPage.tsx
+--- a/mfcs-omega/src/pages/OracleWorkbenchPage.tsx
++++ b/mfcs-omega/src/pages/OracleWorkbenchPage.tsx
+@@
+ import React from 'react';
++import type { EnvelopeReport } from '../lib/oracleKernelCore';
+ 
+-type Evaluation = {
+-  inPhiAttractor?: boolean;
+-  attractorId?: string;
+-  lawCompliance?: {
+-    nearRecursion: boolean;
+-    irreversible: boolean;
+-  };
+-};
++type Evaluation = Pick<
++  EnvelopeReport,
++  'inPhiAttractor' | 'attractorId' | 'lawCompliance'
++>;
+@@
+ export default function OracleWorkbenchPage({ evaluation }: Props) {
++  const attractorLabel = evaluation.attractorId ?? 'unknown';
++
+   return (
+     <>
+-      {evaluation.inPhiAttractor && (
+-        <Badge>G_φ Active · {evaluation.attractorId}</Badge>
++      {evaluation.inPhiAttractor && (
++        <Badge>
++          G_φ Active · {attractorLabel}
++        </Badge>
+       )}
+       {evaluation.lawCompliance && (
+         ...
