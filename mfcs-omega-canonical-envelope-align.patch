@@ -1,0 +1,55 @@
+--- a/spec/modules/EnvelopeLaws.tla
++++ b/spec/modules/EnvelopeLaws.tla
+@@ -1,15 +1,25 @@
+ ----------------------------- MODULE EnvelopeLaws -----------------------------
+-EXTENDS Naturals, Sequences
++EXTENDS Naturals, Sequences, FiniteSets
++
++(***************************************************************************
++ Canonical envelope-law module.
++
++ This module defines the admissible region of system evolution. The envelope
++ laws are constraints, not dynamics. They are intentionally aligned with the
++ lowercase compatibility module at spec/modules/envelope-laws.tla so legacy
++ and canonical references resolve to the same predicates.
++***************************************************************************)
+ 
+ CONSTANTS
+     MaxDepth,
+-    AllowedInputs
++    AllowedInputs,
++    MaxEnvelope
+ 
+ VARIABLES state
+ 
+ (*
+ Envelope laws define the admissible region of system evolution.
+-They are not dynamics — they are constraints.
++They are not dynamics; they are constraints.
+ *)
+ 
+ DepthBound ==
+@@ -19,7 +29,21 @@
+     \A i \in DOMAIN state:
+         state[i] \in AllowedInputs
+ 
+-Envelope ==
+-    DepthBound /\ InputBound
++HistoryFinite ==
++    IsFiniteSet(DOMAIN state)
+ 
+-=============================================================================+EnvelopeBudget ==
++    Len(state) <= MaxEnvelope
++
++InEnvelope ==
++    /\ DepthBound
++    /\ InputBound
++    /\ HistoryFinite
++    /\ EnvelopeBudget
++
++\* Backward-compatible aliases
++EnvelopeLaw1 == DepthBound
++EnvelopeLaw2 == InputBound
++Envelope == InEnvelope
++
++=============================================================================
