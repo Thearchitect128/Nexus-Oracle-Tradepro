@@ -1,0 +1,277 @@
+diff -ruN /tmp/origrepo/Work--main/mfcs-omega/OPERATOR.md /mnt/data/repo/Work--main/mfcs-omega/OPERATOR.md
+--- /tmp/origrepo/Work--main/mfcs-omega/OPERATOR.md	2026-04-20 17:33:15.000000000 +0000
++++ /mnt/data/repo/Work--main/mfcs-omega/OPERATOR.md	2026-04-20 19:20:56.388895416 +0000
+@@ -8,6 +8,13 @@
+ 
+ ## 1. Verification Pipeline (MFCS Core)
+ 
++### Run the full reproducibility pipeline
++```bash
++./tools/run-all.sh
++```
++
++This executes verification, mirror build, and packaging in sequence.
++
+ ### Run full TLA+ verification
+ ```bash
+ ./tools/verify.sh
+@@ -55,6 +62,8 @@
+ - `digital-mirror/mirror.json`
+ - `digital-mirror/mirror-build-log.md`
+ 
++The mirror surfaces the latest classified trace, invariant names, law metadata, and a compact oracle-state summary.
++
+ ---
+ 
+ ## 4. Package a Release
+diff -ruN /tmp/origrepo/Work--main/mfcs-omega/README.md /mnt/data/repo/Work--main/mfcs-omega/README.md
+--- /tmp/origrepo/Work--main/mfcs-omega/README.md	2026-04-20 17:33:15.000000000 +0000
++++ /mnt/data/repo/Work--main/mfcs-omega/README.md	2026-04-20 19:20:56.387882907 +0000
+@@ -22,11 +22,14 @@
+ git clone <your-repo-url> mfcs-omega
+ cd mfcs-omega
+ 
+-# Run verification (TLA+ / TLC harness)
++# Run the full reproducibility pipeline
++./tools/run-all.sh
++
++# Run verification only (TLA+ / TLC harness)
+ ./tools/verify.sh
+ 
+ # Package a release artifact
+ ./tools/package.sh
+ ```
+ 
+-See `docs/architecture-overview.md`, `OPERATOR.md`, and `docs/oracle-overview.md` for a guided tour.
++See `docs/architecture-overview.md`, `docs/laws/README.md`, and `OPERATOR.md` for a guided tour.
+diff -ruN /tmp/origrepo/Work--main/mfcs-omega/docs/architecture-overview.md /mnt/data/repo/Work--main/mfcs-omega/docs/architecture-overview.md
+--- /tmp/origrepo/Work--main/mfcs-omega/docs/architecture-overview.md	2026-04-20 17:33:15.000000000 +0000
++++ /mnt/data/repo/Work--main/mfcs-omega/docs/architecture-overview.md	2026-04-20 19:20:56.389568018 +0000
+@@ -42,3 +42,10 @@
+ - Codex: IDE/Copilot integration
+ - Console: operator-facing surfaces
+ ```
++
++
++## Envelope laws
++
++Envelope laws are the cross-layer constraints that bound admissible traces.
++They are specified in `spec/modules/EnvelopeLaws.tla` and surfaced to operators
++through the Digital Mirror and Oracle kernel bindings.
+diff -ruN /tmp/origrepo/Work--main/mfcs-omega/docs/laws/README.md /mnt/data/repo/Work--main/mfcs-omega/docs/laws/README.md
+--- /tmp/origrepo/Work--main/mfcs-omega/docs/laws/README.md	1970-01-01 00:00:00.000000000 +0000
++++ /mnt/data/repo/Work--main/mfcs-omega/docs/laws/README.md	2026-04-20 19:20:53.601397234 +0000
+@@ -0,0 +1,17 @@
++# Envelope Laws
++
++This directory holds human-readable summaries of the envelope laws that govern
++MFCS–OMEGA. The normative machine-readable modules live under `spec/modules/`.
++
++## Current laws
++
++- `phi-A.md` — Near-recursion attractor law for the φ-governed facet family.
++
++## Source of truth
++
++Use the following repository-local artifacts together:
++
++- `spec/modules/envelope-laws.tla` — compatibility module for generic envelope constraints
++- `spec/modules/EnvelopeLaws.tla` — canonical upper-case module for TLA+ specs
++- `mirror/two_peak_example.json` and `mirror/three_peak_example.json` — compact law-bearing examples
++- `src/lib/oracleKernelCore.ts` — runtime binding of φ-attractor compliance
+diff -ruN /tmp/origrepo/Work--main/mfcs-omega/manifest.json /mnt/data/repo/Work--main/mfcs-omega/manifest.json
+--- /tmp/origrepo/Work--main/mfcs-omega/manifest.json	2026-04-20 17:33:15.000000000 +0000
++++ /mnt/data/repo/Work--main/mfcs-omega/manifest.json	2026-04-20 19:20:56.390422440 +0000
+@@ -13,6 +13,8 @@
+     "tlc": "TLC harnesses and trace adapters",
+     "oracle": "Kernel, spatial layer, agents, console",
+     "digital_mirror": "Reviewer-facing mirror and schema",
+-    "codex": "VS Code extension and prompt contracts"
++    "codex": "VS Code extension and prompt contracts",
++    "envelope_laws_docs": "docs/laws/README.md",
++    "compat_envelope_module": "spec/modules/envelope-laws.tla"
+   }
+ }
+diff -ruN /tmp/origrepo/Work--main/mfcs-omega/spec/modules/envelope-laws.tla /mnt/data/repo/Work--main/mfcs-omega/spec/modules/envelope-laws.tla
+--- /tmp/origrepo/Work--main/mfcs-omega/spec/modules/envelope-laws.tla	2026-04-20 17:33:15.000000000 +0000
++++ /mnt/data/repo/Work--main/mfcs-omega/spec/modules/envelope-laws.tla	2026-04-20 19:20:53.556145629 +0000
+@@ -1,13 +1,48 @@
+ ----------------------------- MODULE envelope-laws -----------------------------
+-EXTENDS Naturals, Sequences
++EXTENDS Naturals, Sequences, FiniteSets
++
++(*************************************************************************** )
++(* Repository-local envelope laws module.                                  *)
++(*                                                                         *)
++(* This lower-case module is kept for compatibility with existing imports, *)
++(* patches, and notes. It defines the envelope as a set of constraints     *)
++(* over a finite state history rather than as system dynamics.             *)
++(*************************************************************************** )
++
++CONSTANTS
++    MaxDepth,
++    AllowedInputs,
++    MaxEnvelope
+ 
+ VARIABLES state
+ 
+-EnvelopeLaw1 ==
+-    /\ Len(state) <= MaxDepth
++(* Each element of state is assumed to be an input symbol drawn from        *)
++(* AllowedInputs. The module constrains the history rather than evolving it. *)
+ 
+-EnvelopeLaw2 ==
+-    /\ \A i \in DOMAIN state:
++DepthBound ==
++    Len(state) <= MaxDepth
++
++InputBound ==
++    \A i \in DOMAIN state:
+         state[i] \in AllowedInputs
+ 
++HistoryFinite ==
++    state \in Seq(AllowedInputs)
++
++(* A simple global budget for finite traces. When states are symbolic       *)
++(* atoms, cardinality is the only generic aggregate available.              *)
++EnvelopeBudget ==
++    Cardinality({ state[i] : i \in DOMAIN state }) <= MaxEnvelope
++
++InEnvelope ==
++    /\ HistoryFinite
++    /\ DepthBound
++    /\ InputBound
++    /\ EnvelopeBudget
++
++(* Backward-compatible aliases used by older notes and patches. *)
++EnvelopeLaw1 == DepthBound
++EnvelopeLaw2 == InputBound
++Envelope == InEnvelope
++
+ =============================================================================
+diff -ruN /tmp/origrepo/Work--main/mfcs-omega/tools/build-mirror.py /mnt/data/repo/Work--main/mfcs-omega/tools/build-mirror.py
+--- /tmp/origrepo/Work--main/mfcs-omega/tools/build-mirror.py	2026-04-20 17:33:15.000000000 +0000
++++ /mnt/data/repo/Work--main/mfcs-omega/tools/build-mirror.py	2026-04-20 19:20:53.580414765 +0000
+@@ -1,50 +1,98 @@
+ #!/usr/bin/env python3
+-import json
+-from pathlib import Path
++"""Build the Digital Mirror artifact from repository-local sources.
+ 
+-ROOT = Path(__file__).resolve().parents[1]
+-MIRROR = ROOT / "digital-mirror" / "mirror.json"
+-LOG = ROOT / "digital-mirror" / "mirror-build-log.md"
++The mirror is intentionally small and reproducible. It surfaces:
++- invariant names from the spec modules
++- the latest classified TLC trace, if present
++- law metadata from example mirror artifacts
++- a compact oracle state summary
++"""
++
++from __future__ import annotations
+ 
+-#!/usr/bin/env python3
+ import json
++import re
++from datetime import datetime, timezone
+ from pathlib import Path
++from typing import Any
+ 
+ ROOT = Path(__file__).resolve().parents[1]
+-
+-TLC_TRACE = ROOT / "tlc" / "traces" / "classified"
+-INVARIANTS = ROOT / "spec" / "modules" / "Invariants.tla"
++TLC_TRACE_DIR = ROOT / "tlc" / "traces" / "classified"
++INVARIANTS_FILE = ROOT / "spec" / "modules" / "Invariants.tla"
++EXAMPLE_MIRRORS = [
++    ROOT / "mirror" / "two_peak_example.json",
++    ROOT / "mirror" / "three_peak_example.json",
++]
+ MIRROR = ROOT / "digital-mirror" / "mirror.json"
+ LOG = ROOT / "digital-mirror" / "mirror-build-log.md"
+ 
+-def load_latest_trace():
+-    traces = sorted(TLC_TRACE.glob("*.json"), reverse=True)
++
++def load_latest_trace() -> dict[str, Any] | None:
++    traces = sorted(TLC_TRACE_DIR.glob("*.json"), key=lambda p: p.stat().st_mtime, reverse=True)
+     if not traces:
+         return None
+-    return json.loads(traces[0].read_text())
++    return json.loads(traces[0].read_text(encoding="utf-8"))
++
+ 
+-def build():
++def extract_invariants() -> list[str]:
++    if not INVARIANTS_FILE.exists():
++        return []
++    text = INVARIANTS_FILE.read_text(encoding="utf-8")
++    # Capture top-level TLA operator names that look like invariants.
++    names = re.findall(r"(?m)^([A-Z][A-Za-z0-9_]+)\s*==", text)
++    return sorted(dict.fromkeys(names))
++
++
++def extract_laws() -> list[dict[str, Any]]:
++    laws: list[dict[str, Any]] = []
++    for path in EXAMPLE_MIRRORS:
++        if not path.exists():
++            continue
++        try:
++            data = json.loads(path.read_text(encoding="utf-8"))
++        except json.JSONDecodeError:
++            continue
++        for law in data.get("metadata", {}).get("laws", []):
++            law_id = law.get("id")
++            if law_id and not any(existing.get("id") == law_id for existing in laws):
++                laws.append(law)
++    return laws
++
++
++def build() -> None:
+     trace = load_latest_trace()
++    invariants = extract_invariants()
++    laws = extract_laws()
+ 
+     mirror = {
+-        "version": "0.1.0",
+-        "invariants": ["TypeOK", "OutputWellFormed"],
+-        "last_run": trace if trace else {},
++        "version": "0.2.0-dev",
++        "built_at": datetime.now(timezone.utc).isoformat(),
++        "source": "mfcs-omega",
++        "invariants": invariants,
++        "laws": laws,
++        "last_run": trace or {},
+         "oracle_state": {
+             "kernel": "stable",
+             "spatial_layer": "active",
+-            "agents": "idle"
++            "agents": "idle",
+         },
+-        "peaks": trace.get("peaks", []) if trace else []
++        "peaks": (trace or {}).get("peaks", []),
++        "trace_present": bool(trace),
+     }
+ 
+-    MIRROR.write_text(json.dumps(mirror, indent=2))
++    MIRROR.write_text(json.dumps(mirror, indent=2), encoding="utf-8")
++
++    log_lines = [
++        "# Mirror Build Log",
++        "",
++        f"- Built at: {mirror['built_at']}",
++        f"- Version: {mirror['version']}",
++        f"- Trace included: {bool(trace)}",
++        f"- Invariants surfaced: {len(invariants)}",
++        f"- Laws surfaced: {len(laws)}",
++    ]
++    LOG.write_text("\n".join(log_lines) + "\n", encoding="utf-8")
+ 
+-    LOG.write_text(
+-        "# Mirror Build Log\n\n"
+-        "- Built v0.1.0 mirror\n"
+-        f"- Trace included: {bool(trace)}\n"
+-    )
+ 
+ if __name__ == "__main__":
+     build()

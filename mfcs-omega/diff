@@ -1,0 +1,751 @@
+diff --git a/src/lib/types.ts b/src/lib/types.ts
+index 1111111..2222222 100644
+--- a/src/lib/types.ts
++++ b/src/lib/types.ts
+@@ -1,3 +1,113 @@
++export type SourceTier = "LIVE_API" | "CACHE" | "FALLBACK"
++
++export type MfcsState = "IDLE" | "EVAL" | "EXEC"
++
++export type DecisionClass =
++  | "DEFEND"
++  | "EXPLOIT"
++  | "HOLD"
++  | "IGNORE"
++  | "ABORT"
++
++export type InvariantStatus = "PASS" | "FAIL"
++
++export type CertificationStatus = "CERTIFIED" | "REJECTED"
++
++export interface InvariantReport {
++  passed: boolean
++  status: InvariantStatus
++  violations: string[]
++}
++
++export interface EnvelopeReport {
++  value: number
++  limit: number
++  violated: boolean
++  facet: string
++}
++
++export interface PatternInsight {
++  label: string
++  similarity: number
++  expectedOutcome?: string
++  confidenceBoost: number
++}
++
++export interface MfcsTrace {
++  vesselState: MfcsState
++  trace: MfcsState[]
++  invariantReport: InvariantReport
++}
++
++export interface DecisionCertification {
++  status: CertificationStatus
++  decision: DecisionClass
++  score: number
++  confidence: number
++  reasoning: string[]
++  envelope: EnvelopeReport
++  invariants: InvariantReport
++  pattern?: PatternInsight | null
++  sourceTier: SourceTier
++}
++
++export interface StrategicSignal {
++  id: string
++  timestamp: number
++  label: string
++  source: string
++  sourceTier: SourceTier
++  marketImpact: number
++  supplyDisruption: number
++  securityRisk: number
++  aiShift: number
++  sentiment: number
++  velocity: number
++  momentum: number
++  confidence: number
++  volatility: number
++  reputation: number
++  traceStatus?: "EXEC" | "CRITICAL_FAIL" | "IDLE" | "PENDING"
++  meta?: Record<string, unknown>
++}
++
++export interface RuntimeEnvelopeState {
++  e: number
++  phi: number
++  r: number
++  integ?: number
++}
++
++export interface RuntimeWeights {
++  C_phi: number
++  C_r: number
++  M_pred: number
++}
++
++export interface OracleDecisionPacket {
++  signal: StrategicSignal
++  state: RuntimeEnvelopeState
++  certification: DecisionCertification
++  mfcs: MfcsTrace
++  contextSnapshot: Record<string, unknown>
++}
++
++export interface OperatorFeedItem extends OracleDecisionPacket {
++  id: string
++}
++
++export interface EngineConfig {
++  riskTolerance: number
++  C_phi: number
++  C_r: number
++  M_pred: number
++}
++
++export interface MeridianPayload {
++  signalIntegrity: "STABLE" | "DEGRADED" | "INTERFERENCE"
++  cognitiveLoad: "LOW" | "MODERATE" | "HIGH"
++  environmentalNoise: "QUIET" | "MIXED" | "HIGH"
++  operatorEnergy: "RISING" | "STEADY" | "FALLING"
++  posture: string
++  primaryObjective?: string
++  secondaryObjective?: string
++}
++
++// Keep your existing exports below if they are already present.
++
+diff --git a/src/lib/envelope.ts b/src/lib/envelope.ts
+new file mode 100644
+index 0000000..3333333
+--- /dev/null
++++ b/src/lib/envelope.ts
+@@ -0,0 +1,39 @@
++import type { EnvelopeReport, RuntimeEnvelopeState, RuntimeWeights } from "./types"
++
++export function computeEnvelopeValue(
++  state: RuntimeEnvelopeState,
++  weights: Pick<RuntimeWeights, "C_phi" | "C_r">
++): number {
++  return state.e + weights.C_phi * state.phi + weights.C_r * state.r
++}
++
++export function deriveFacet(
++  state: RuntimeEnvelopeState,
++  weights: Pick<RuntimeWeights, "C_phi" | "C_r">
++): string {
++  const a = state.e + weights.C_phi * state.phi + weights.C_r * state.r
++  const phiDominant = state.phi >= state.r
++  if (phiDominant) return `Facet A (${a.toFixed(2)})`
++  return `Facet B (${a.toFixed(2)})`
++}
++
++export function evaluateEnvelope(
++  state: RuntimeEnvelopeState,
++  weights: RuntimeWeights
++): EnvelopeReport {
++  const value = computeEnvelopeValue(state, weights)
++  return {
++    value,
++    limit: weights.M_pred,
++    violated: value > weights.M_pred,
++    facet: deriveFacet(state, weights),
++  }
++}
++
+diff --git a/src/lib/certify.ts b/src/lib/certify.ts
+new file mode 100644
+index 0000000..4444444
+--- /dev/null
++++ b/src/lib/certify.ts
+@@ -0,0 +1,86 @@
++import type {
++  DecisionCertification,
++  DecisionClass,
++  InvariantReport,
++  PatternInsight,
++  RuntimeEnvelopeState,
++  RuntimeWeights,
++  SourceTier,
++} from "./types"
++import { evaluateEnvelope } from "./envelope"
++
++export function deriveConfidence(args: {
++  patternSimilarity?: number
++  invariantPassed: boolean
++  signalIntegrityScore: number
++}): number {
++  const pattern = Math.max(0, Math.min(1, args.patternSimilarity ?? 0))
++  const invariant = args.invariantPassed ? 1 : 0
++  const signal = Math.max(0, Math.min(1, args.signalIntegrityScore))
++  const raw = 0.4 * pattern + 0.3 * invariant + 0.3 * signal
++  return Number(raw.toFixed(3))
++}
++
++export function buildReasoning(args: {
++  decision: DecisionClass
++  score: number
++  invariants: InvariantReport
++  envelopeViolated: boolean
++  pattern?: PatternInsight | null
++  sourceTier: SourceTier
++}): string[] {
++  const reasons: string[] = []
++  reasons.push(`Decision ${args.decision} from score ${args.score.toFixed(2)}`)
++  reasons.push(args.invariants.passed ? "MFCS invariants passed" : "MFCS invariants failed")
++  reasons.push(args.envelopeViolated ? "Envelope violated" : "Envelope safe")
++  reasons.push(`Source tier: ${args.sourceTier}`)
++  if (args.pattern) {
++    reasons.push(
++      `Pattern match ${args.pattern.label} (${(args.pattern.similarity * 100).toFixed(1)}%)`
++    )
++  }
++  return reasons
++}
++
++export function certifyDecision(args: {
++  decision: DecisionClass
++  score: number
++  invariants: InvariantReport
++  state: RuntimeEnvelopeState
++  weights: RuntimeWeights
++  pattern?: PatternInsight | null
++  sourceTier: SourceTier
++  signalIntegrityScore: number
++}): DecisionCertification {
++  const envelope = evaluateEnvelope(args.state, args.weights)
++  const confidence = deriveConfidence({
++    patternSimilarity: args.pattern?.similarity,
++    invariantPassed: args.invariants.passed,
++    signalIntegrityScore: args.signalIntegrityScore,
++  })
++
++  const rejected = !args.invariants.passed || envelope.violated
++
++  return {
++    status: rejected ? "REJECTED" : "CERTIFIED",
++    decision: rejected ? "ABORT" : args.decision,
++    score: args.score,
++    confidence,
++    reasoning: buildReasoning({
++      decision: rejected ? "ABORT" : args.decision,
++      score: args.score,
++      invariants: args.invariants,
++      envelopeViolated: envelope.violated,
++      pattern: args.pattern,
++      sourceTier: args.sourceTier,
++    }),
++    envelope,
++    invariants: args.invariants,
++    pattern: args.pattern ?? null,
++    sourceTier: args.sourceTier,
++  }
++}
++
+diff --git a/src/lib/connectors.ts b/src/lib/connectors.ts
+index 5555555..6666666 100644
+--- a/src/lib/connectors.ts
++++ b/src/lib/connectors.ts
+@@ -1,3 +1,5 @@
++import type { SourceTier, StrategicSignal } from "./types"
++
+ // Existing connector code assumed here.
+ // This patch only shows the important contract changes.
+ 
+@@ -5,3 +7,74 @@
++let LAST_MARKET_SOURCE_TIER: SourceTier = "FALLBACK"
++
++export function getLastMarketSourceTier(): SourceTier {
++  return LAST_MARKET_SOURCE_TIER
++}
++
++export async function fetchMarketSignals(): Promise<StrategicSignal[]> {
++  try {
++    // Keep your existing CoinGecko fetch/caching logic.
++    // The important addition is sourceTier on every emitted signal.
++    const signal: StrategicSignal = {
++      id: `market-${Date.now()}`,
++      timestamp: Date.now(),
++      label: "BTC Pulse",
++      source: "coingecko",
++      sourceTier: "LIVE_API",
++      marketImpact: 62,
++      supplyDisruption: 8,
++      securityRisk: 14,
++      aiShift: 20,
++      sentiment: 6,
++      velocity: 4,
++      momentum: 0.73,
++      confidence: 0.81,
++      volatility: 0.22,
++      reputation: 0.92,
++      traceStatus: "PENDING",
++      meta: {},
++    }
++    LAST_MARKET_SOURCE_TIER = "LIVE_API"
++    return [signal]
++  } catch (error) {
++    console.warn("[CONNECTORS_ERR] Market API failed, activating cached/fallback mode:", error)
++
++    // If you have cached data, mark CACHE; otherwise FALLBACK.
++    const fallbackSignal: StrategicSignal = {
++      id: `market-fallback-${Date.now()}`,
++      timestamp: Date.now(),
++      label: "BTC Pulse (Fallback)",
++      source: "omega_fallback",
++      sourceTier: "FALLBACK",
++      marketImpact: 48,
++      supplyDisruption: 12,
++      securityRisk: 18,
++      aiShift: 16,
++      sentiment: 2,
++      velocity: 3,
++      momentum: 0.52,
++      confidence: 0.49,
++      volatility: 0.31,
++      reputation: 0.5,
++      traceStatus: "PENDING",
++      meta: { fallback: true },
++    }
++    LAST_MARKET_SOURCE_TIER = "FALLBACK"
++    return [fallbackSignal]
++  }
++}
++
+diff --git a/src/lib/engine.ts b/src/lib/engine.ts
+index 7777777..8888888 100644
+--- a/src/lib/engine.ts
++++ b/src/lib/engine.ts
+@@ -1,3 +1,13 @@
++import type {
++  DecisionClass,
++  EngineConfig,
++  OperatorFeedItem,
++  PatternInsight,
++  RuntimeEnvelopeState,
++  StrategicSignal,
++} from "./types"
++import { certifyDecision } from "./certify"
++import { decide } from "./mfcs/kernel"
++
+ // Existing engine code assumed here.
+ 
+@@ -5,3 +15,119 @@
++export function computeScore(signal: StrategicSignal): number {
++  return (
++    100 * signal.momentum * signal.confidence * signal.reputation -
++    50 * signal.volatility
++  )
++}
++
++export function classifyDecision(score: number, riskTolerance = 0.5): DecisionClass {
++  if (score < -40) return "DEFEND"
++  if (score > 40 && riskTolerance > 0.5) return "EXPLOIT"
++  if (score > 5) return "HOLD"
++  return "IGNORE"
++}
++
++export function deriveRuntimeState(signal: StrategicSignal, score: number): RuntimeEnvelopeState {
++  // Replace with your true runtime projection if already present.
++  const phi = Math.max(0, Math.round(signal.marketImpact / 10))
++  const r = Math.max(0, Math.round(signal.securityRisk / 10))
++  const e = Math.max(0, Math.round(score / 20))
++  return { e, phi, r, integ: phi + r }
++}
++
++export function deriveContext(signal: StrategicSignal, score: number) {
++  return {
++    score,
++    sourceTier: signal.sourceTier,
++    operator_energy: "steady",
++    time_available_min: 45,
++    signalIntegrity:
++      signal.sourceTier === "LIVE_API"
++        ? "STABLE"
++        : signal.sourceTier === "CACHE"
++          ? "DEGRADED"
++          : "INTERFERENCE",
++  }
++}
++
++export function deriveOptions(signal: StrategicSignal, score: number) {
++  return [
++    { id: "DEFEND", payload: { allowed: signal.securityRisk > 60 || score < -40 } },
++    { id: "EXPLOIT", payload: { allowed: score > 40 } },
++    { id: "HOLD", payload: { allowed: true } },
++    { id: "IGNORE", payload: { allowed: score < 5 } },
++  ]
++}
++
++export function derivePattern(signal: StrategicSignal): PatternInsight | null {
++  // Replace with your real memory engine output if already present.
++  const similarity = Math.min(0.95, Math.max(0.12, signal.confidence * 0.9))
++  return {
++    label: similarity > 0.8 ? "Supply Shock 2023" : "Generic Market Drift",
++    similarity,
++    expectedOutcome: similarity > 0.8 ? "Defensive posture historically outperformed" : "Mixed outcome",
++    confidenceBoost: similarity > 0.8 ? 8 : 0,
++  }
++}
++
++export function processSignal(
++  signal: StrategicSignal,
++  config: EngineConfig,
++  vessel: any
++): OperatorFeedItem {
++  const baseScore = computeScore(signal)
++  const pattern = derivePattern(signal)
++  const score = baseScore + (pattern?.confidenceBoost ?? 0)
++  const decision = classifyDecision(score, config.riskTolerance)
++  const state = deriveRuntimeState(signal, score)
++  const context = deriveContext(signal, score)
++  const options = deriveOptions(signal, score)
++
++  const kernelResult = decide(vessel, context, options)
++
++  const certification = certifyDecision({
++    decision,
++    score,
++    invariants: kernelResult.invariantReport ?? {
++      passed: true,
++      status: "PASS",
++      violations: [],
++    },
++    state,
++    weights: {
++      C_phi: config.C_phi,
++      C_r: config.C_r,
++      M_pred: config.M_pred,
++    },
++    pattern,
++    sourceTier: signal.sourceTier,
++    signalIntegrityScore:
++      signal.sourceTier === "LIVE_API"
++        ? 1
++        : signal.sourceTier === "CACHE"
++          ? 0.66
++          : 0.33,
++  })
++
++  return {
++    id: signal.id,
++    signal: {
++      ...signal,
++      traceStatus: certification.status === "REJECTED"
++        ? "CRITICAL_FAIL"
++        : kernelResult.trace?.includes("EXEC")
++          ? "EXEC"
++          : "IDLE",
++    },
++    state,
++    certification,
++    mfcs: {
++      vesselState: kernelResult.trace?.[kernelResult.trace.length - 1] ?? "IDLE",
++      trace: kernelResult.trace ?? ["IDLE"],
++      invariantReport: kernelResult.invariantReport ?? {
++        passed: true,
++        status: "PASS",
++        violations: [],
++      },
++    },
++    contextSnapshot: context,
++  }
++}
++
+diff --git a/src/lib/mfcs/kernel.ts b/src/lib/mfcs/kernel.ts
+index 9999999..aaaaaaa 100644
+--- a/src/lib/mfcs/kernel.ts
++++ b/src/lib/mfcs/kernel.ts
+@@ -1,3 +1,19 @@
++import type { InvariantReport } from "../types"
++
+ export type State = "IDLE" | "EVAL" | "EXEC";
+ 
++export interface DecisionOption {
++  id: string;
++  payload: any;
++}
++
++export interface DecisionResult {
++  chosen: DecisionOption | null;
++  trace: State[];
++  invariantReport: InvariantReport;
++}
++
+ // Existing kernel code assumed here.
+@@ -5,3 +21,50 @@
++function buildInvariantReport(violations: string[]): InvariantReport {
++  return {
++    passed: violations.length === 0,
++    status: violations.length === 0 ? "PASS" : "FAIL",
++    violations,
++  }
++}
++
++export function decide(v: any, ctx: any, options: DecisionOption[]): DecisionResult {
++  const violations: string[] = []
++
++  const anchored = anchor(v, ctx)
++  const evald = evaluate(anchored, options)
++  const expanded = expand(anchored, evald)
++  const chosen = harmonize(anchored, expanded)
++
++  const h1: State[] = [...(anchored.history ?? []), "EVAL"]
++  const h2: State[] = chosen ? [...h1, "EXEC", "IDLE"] : [...h1, "IDLE"]
++
++  if (!anchored.invariants.T1_order(h2)) violations.push("T1_ORDER_VIOLATION")
++  if (!anchored.invariants.T3_continuity(h2)) violations.push("T3_CONTINUITY_VIOLATION")
++  if (!anchored.invariants.M1_stability(anchored.context)) violations.push("M1_STABILITY_VIOLATION")
++  if (!anchored.invariants.M2_coherence(anchored.context)) violations.push("M2_COHERENCE_VIOLATION")
++
++  return {
++    chosen,
++    trace: h2,
++    invariantReport: buildInvariantReport(violations),
++  }
++}
++
+diff --git a/src/components/DecisionCertificationCard.tsx b/src/components/DecisionCertificationCard.tsx
+new file mode 100644
+index 0000000..bbbbbbb
+--- /dev/null
++++ b/src/components/DecisionCertificationCard.tsx
+@@ -0,0 +1,67 @@
++import type { DecisionCertification } from "../lib/types"
++
++type Props = {
++  certification: DecisionCertification
++}
++
++export default function DecisionCertificationCard({ certification }: Props) {
++  const ok = certification.status === "CERTIFIED"
++
++  return (
++    <div className="rounded-xl border border-cyan-500/30 bg-slate-950/70 p-4 shadow-[0_0_24px_rgba(34,211,238,0.12)]">
++      <div className="mb-3 flex items-center justify-between">
++        <div>
++          <div className="text-xs uppercase tracking-[0.25em] text-cyan-300/80">
++            Decision Certification
++          </div>
++          <div className="mt-1 text-2xl font-semibold text-white">
++            {certification.decision}
++          </div>
++        </div>
++        <div
++          className={`rounded-full px-3 py-1 text-xs font-semibold ${
++            ok ? "bg-emerald-500/15 text-emerald-300" : "bg-red-500/15 text-red-300"
++          }`}
++        >
++          {certification.status}
++        </div>
++      </div>
++
++      <div className="grid grid-cols-2 gap-3 text-sm text-slate-200">
++        <div>Score: {certification.score.toFixed(2)}</div>
++        <div>Confidence: {(certification.confidence * 100).toFixed(1)}%</div>
++        <div>Source: {certification.sourceTier}</div>
++        <div>Facet: {certification.envelope.facet}</div>
++        <div>Envelope: {certification.envelope.value.toFixed(2)}</div>
++        <div>Limit: {certification.envelope.limit.toFixed(2)}</div>
++      </div>
++
++      <div className="mt-3">
++        <div className="mb-1 text-xs uppercase tracking-[0.2em] text-slate-400">Why</div>
++        <ul className="space-y-1 text-sm text-slate-200">
++          {certification.reasoning.map((reason) => (
++            <li key={reason}>• {reason}</li>
++          ))}
++        </ul>
++      </div>
++
++      {!certification.invariants.passed && (
++        <div className="mt-3 rounded-lg border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-200">
++          Violations: {certification.invariants.violations.join(", ")}
++        </div>
++      )}
++    </div>
++  )
++}
++
+diff --git a/src/components/FuturePanel.tsx b/src/components/FuturePanel.tsx
+index ccccccc..ddddddd 100644
+--- a/src/components/FuturePanel.tsx
++++ b/src/components/FuturePanel.tsx
+@@ -1,3 +1,15 @@
++import { useMemo, useState } from "react"
++import type { OperatorFeedItem } from "../lib/types"
++import DecisionCertificationCard from "./DecisionCertificationCard"
++
++type FilterKey =
++  | "ALL"
++  | "EXEC_ONLY"
++  | "CRITICAL_FAIL"
++  | "ENVELOPE_EDGE"
++  | "HIGH_PATTERN"
++  | "LOW_CONFIDENCE"
++
+ // Existing FuturePanel code assumed here.
+@@ -5,3 +17,111 @@
++type Props = {
++  feed: OperatorFeedItem[]
++}
++
++export default function FuturePanel({ feed }: Props) {
++  const [filter, setFilter] = useState<FilterKey>("ALL")
++
++  const filtered = useMemo(() => {
++    switch (filter) {
++      case "EXEC_ONLY":
++        return feed.filter((x) => x.signal.traceStatus === "EXEC")
++      case "CRITICAL_FAIL":
++        return feed.filter((x) => x.signal.traceStatus === "CRITICAL_FAIL")
++      case "ENVELOPE_EDGE":
++        return feed.filter((x) => {
++          const { value, limit } = x.certification.envelope
++          return value / Math.max(limit, 0.0001) >= 0.85
++        })
++      case "HIGH_PATTERN":
++        return feed.filter((x) => (x.certification.pattern?.similarity ?? 0) >= 0.8)
++      case "LOW_CONFIDENCE":
++        return feed.filter((x) => x.certification.confidence < 0.5)
++      default:
++        return feed
++    }
++  }, [feed, filter])
++
++  const counts: Record<FilterKey, number> = {
++    ALL: feed.length,
++    EXEC_ONLY: feed.filter((x) => x.signal.traceStatus === "EXEC").length,
++    CRITICAL_FAIL: feed.filter((x) => x.signal.traceStatus === "CRITICAL_FAIL").length,
++    ENVELOPE_EDGE: feed.filter((x) => {
++      const { value, limit } = x.certification.envelope
++      return value / Math.max(limit, 0.0001) >= 0.85
++    }).length,
++    HIGH_PATTERN: feed.filter((x) => (x.certification.pattern?.similarity ?? 0) >= 0.8).length,
++    LOW_CONFIDENCE: feed.filter((x) => x.certification.confidence < 0.5).length,
++  }
++
++  const filters: FilterKey[] = [
++    "ALL",
++    "EXEC_ONLY",
++    "CRITICAL_FAIL",
++    "ENVELOPE_EDGE",
++    "HIGH_PATTERN",
++    "LOW_CONFIDENCE",
++  ]
++
++  return (
++    <section className="space-y-4">
++      <div className="flex flex-wrap gap-2">
++        {filters.map((key) => (
++          <button
++            key={key}
++            onClick={() => setFilter(key)}
++            className={`rounded-full border px-3 py-1 text-xs font-medium ${
++              filter === key
++                ? "border-cyan-400 bg-cyan-400/15 text-cyan-200"
++                : "border-slate-700 bg-slate-900/60 text-slate-300"
++            }`}
++          >
++            {key} ({counts[key]})
++          </button>
++        ))}
++      </div>
++
++      <div className="grid gap-4">
++        {filtered.map((item) => (
++          <div
++            key={item.id}
++            className="rounded-xl border border-slate-800 bg-slate-950/80 p-4"
++          >
++            <div className="mb-3 flex items-start justify-between">
++              <div>
++                <div className="text-sm font-semibold text-white">{item.signal.label}</div>
++                <div className="mt-1 text-xs text-slate-400">
++                  {item.signal.source} · {item.signal.sourceTier} · {new Date(item.signal.timestamp).toLocaleTimeString()}
++                </div>
++              </div>
++              <div
++                className={`rounded-full px-2 py-1 text-xs font-semibold ${
++                  item.signal.traceStatus === "CRITICAL_FAIL"
++                    ? "bg-red-500/15 text-red-300"
++                    : item.signal.traceStatus === "EXEC"
++                      ? "bg-emerald-500/15 text-emerald-300"
++                      : "bg-slate-500/15 text-slate-300"
++                }`}
++              >
++                {item.signal.traceStatus}
++              </div>
++            </div>
++
++            <DecisionCertificationCard certification={item.certification} />
++
++            <details className="mt-3 rounded-lg border border-slate-800 bg-slate-900/60 p-3">
++              <summary className="cursor-pointer text-sm text-cyan-200">Inspect Context</summary>
++              <pre className="mt-2 overflow-auto text-xs text-slate-300">
++                {JSON.stringify(item.contextSnapshot, null, 2)}
++              </pre>
++            </details>
++          </div>
++        ))}
++      </div>
++    </section>
++  )
++}
++
+diff --git a/src/App.tsx b/src/App.tsx
+index eeeeeee..fffffff 100644
+--- a/src/App.tsx
++++ b/src/App.tsx
+@@ -1,3 +1,10 @@
++import { useMemo } from "react"
++import FuturePanel from "./components/FuturePanel"
++import type { EngineConfig, OperatorFeedItem, StrategicSignal } from "./lib/types"
++import { processSignal } from "./lib/engine"
++import { getLastMarketSourceTier } from "./lib/connectors"
++
+ // Existing App code assumed here.
+@@ -5,3 +12,39 @@
++const ENGINE_CONFIG: EngineConfig = {
++  riskTolerance: 0.65,
++  C_phi: 0.1,
++  C_r: 0.25,
++  M_pred: 20,
++}
++
++export default function App() {
++  // Replace these with your real state sources / websocket data.
++  const incomingSignals: StrategicSignal[] = []
++  const vessel: any = (globalThis as any).__OMEGA_VESSEL__ ?? {
++    state: "IDLE",
++    history: [],
++    context: {},
++    invariants: {
++      T1_order: () => true,
++      T2_timing: () => true,
++      T3_continuity: () => true,
++      M1_stability: () => true,
++      M2_coherence: () => true,
++      M3_alignment: () => true,
++      M4_emergence: () => true,
++      M5_distribution: () => true,
++    },
++  }
++
++  const feed: OperatorFeedItem[] = useMemo(() => {
++    return incomingSignals.map((signal) =>
++      processSignal(
++        { ...signal, sourceTier: signal.sourceTier ?? getLastMarketSourceTier() },
++        ENGINE_CONFIG,
++        vessel
++      )
++    )
++  }, [incomingSignals, vessel])
++
++  return <FuturePanel feed={feed} />
++}

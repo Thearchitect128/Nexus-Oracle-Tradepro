@@ -1,0 +1,279 @@
+--- a/mfcs-omega/src/lib/oracleKernelCore.ts
++++ b/mfcs-omega/src/lib/oracleKernelCore.ts
+@@ -1 +1,165 @@
+-export type OracleMode = 'BUILD_COMPRESS' | 'FUSION' | 'ANALYZE' | 'IDLE'; export interface OracleState { mode: OracleMode; } export interface FacetClassification { facet: string; label: string; M_min: number; } export interface EnvelopeInputs { W: number; inside: boolean; margin: number; gap: number; kink: number | null; weights: { C_r: number }; classification: FacetClassification; state: OracleState; } export interface EnvelopeReport { W: number; M_min: number; inside: boolean; margin: number; activeFacet: string; facetLabel: string; supportGap: number; kinkProximity: number; dimension: 2 | 3; degenerate?: boolean; // Law φ-A binding inPhiAttractor: boolean; attractorId?: 'G_phi'; lawCompliance?: { lawId: 'phi-A'; nearRecursion: boolean; irreversible: boolean; inAttractor: boolean; }; } const PHI_FACETS = ['Facet-A', 'Facet-C']; export class OracleKernelCore { constructor( private readonly dimension: 2 | 3, private readonly degenerate?: boolean, ) {} evaluate(input: EnvelopeInputs): EnvelopeReport { const { W, classification, inside, margin, gap, kink, weights, state } = input; const inPhiAttractor = inside && PHI_FACETS.includes(classification.facet); const lawCompliance = { lawId: 'phi-A' as const, nearRecursion: false, irreversible: state.mode === 'BUILD_COMPRESS' || state.mode === 'FUSION', inAttractor: inPhiAttractor, }; return { W, M_min: classification.M_min, inside, margin, activeFacet: classification.facet, facetLabel: classification.label, supportGap: gap, kinkProximity: kink !== null ? Math.abs(weights.C_r - kink) : Infinity, dimension: this.dimension, degenerate: this.degenerate, inPhiAttractor, attractorId: inPhiAttractor ? 'G_phi' : undefined, lawCompliance, }; } }
++export type OracleMode = 'BUILD_COMPRESS' | 'FUSION' | 'ANALYZE' | 'IDLE';
++
++export interface OracleState {
++  mode: OracleMode;
++  phi?: number;
++  r?: number;
++  s?: number;
++  e?: number;
++}
++
++export interface FacetClassification {
++  facet: string;
++  label: string;
++  M_min: number;
++}
++
++export interface EnvelopeInputs {
++  W: number;
++  inside: boolean;
++  margin: number;
++  gap: number;
++  kink: number | null;
++  weights: { C_r: number };
++  classification: FacetClassification;
++  state: OracleState;
++}
++
++export interface EnvelopeReport {
++  W: number;
++  M_min: number;
++  inside: boolean;
++  margin: number;
++  activeFacet: string;
++  facetLabel: string;
++  supportGap: number;
++  kinkProximity: number;
++  dimension: 2 | 3;
++  degenerate?: boolean;
++
++  // Law φ-A binding
++  inPhiAttractor: boolean;
++  attractorId?: 'G_phi';
++  lawCompliance?: {
++    lawId: 'phi-A';
++    nearRecursion: boolean;
++    irreversible: boolean;
++    inAttractor: boolean;
++  };
++}
++
++type KernelState = Required<Pick<OracleState, 'mode' | 'phi' | 'r' | 'e'>> & {
++  s?: number;
++};
++
++const PHI_FACETS = ['Facet-A', 'Facet-C'] as const;
++const MAX_NEAR_RECURRENCE_STEPS = 8;
++const NEAR_RECURRENCE_EPSILON = 1e-3;
++const THRESHOLD_K = 3;
++
++function hasKernelState(state: OracleState): state is KernelState {
++  return (
++    typeof state.phi === 'number' &&
++    typeof state.r === 'number' &&
++    typeof state.e === 'number'
++  );
++}
++
++function distance(a: KernelState, b: KernelState): number {
++  return (
++    Math.abs(a.phi - b.phi) +
++    Math.abs(a.r - b.r) +
++    Math.abs((a.s ?? 0) - (b.s ?? 0)) +
++    Math.abs(a.e - b.e)
++  );
++}
++
++function step(state: KernelState): KernelState {
++  switch (state.mode) {
++    case 'BUILD_COMPRESS':
++      if (state.phi >= THRESHOLD_K) {
++        return {
++          ...state,
++          phi: state.phi - 1,
++          r: state.r + 4,
++          s: (state.s ?? 0) + (state.phi - THRESHOLD_K + 1),
++        };
++      }
++      return { ...state };
++
++    case 'FUSION':
++      return {
++        ...state,
++        phi: Math.max(0, state.phi - 1),
++        e: state.e + 1,
++      };
++
++    case 'ANALYZE':
++    case 'IDLE':
++    default:
++      return {
++        ...state,
++        r: state.r + 1,
++      };
++  }
++}
++
++function computeNearRecursion(
++  initial: OracleState,
++  maxSteps = MAX_NEAR_RECURRENCE_STEPS,
++  epsilon = NEAR_RECURRENCE_EPSILON,
++): boolean {
++  if (!hasKernelState(initial)) {
++    return false;
++  }
++
++  let current: KernelState = { ...initial };
++  for (let n = 1; n <= maxSteps; n += 1) {
++    current = step(current);
++    if (distance(current, initial) <= epsilon) {
++      return true;
++    }
++  }
++
++  return false;
++}
++
++export class OracleKernelCore {
++  constructor(
++    private readonly dimension: 2 | 3,
++    private readonly degenerate?: boolean,
++  ) {}
++
++  evaluate(input: EnvelopeInputs): EnvelopeReport {
++    const { W, classification, inside, margin, gap, kink, weights, state } = input;
++    const inPhiAttractor =
++      inside &&
++      PHI_FACETS.includes(
++        classification.facet as (typeof PHI_FACETS)[number],
++      );
++    const nearRecursion = computeNearRecursion(state);
++
++    const lawCompliance = {
++      lawId: 'phi-A' as const,
++      nearRecursion,
++      irreversible: state.mode === 'BUILD_COMPRESS' || state.mode === 'FUSION',
++      inAttractor: inPhiAttractor,
++    };
++
++    return {
++      W,
++      M_min: classification.M_min,
++      inside,
++      margin,
++      activeFacet: classification.facet,
++      facetLabel: classification.label,
++      supportGap: gap,
++      kinkProximity: kink !== null ? Math.abs(weights.C_r - kink) : Infinity,
++      dimension: this.dimension,
++      degenerate: this.degenerate,
++      inPhiAttractor,
++      attractorId: inPhiAttractor ? 'G_phi' : undefined,
++      lawCompliance,
++    };
++  }
++}
+--- a/mfcs-omega/src/lib/oracleKernelCore.test.ts
++++ b/mfcs-omega/src/lib/oracleKernelCore.test.ts
+@@ -1 +1,106 @@
+-import assert from 'node:assert/strict'; import { OracleKernelCore } from './oracleKernelCore'; const core = new OracleKernelCore(2); const facetA = core.evaluate({ W: 1, inside: true, margin: 0.1, gap: 0, kink: null, weights: { C_r: 1 }, classification: { facet: 'Facet-A', label: 'A', M_min: 2 }, state: { mode: 'BUILD_COMPRESS' }, }); assert.equal(facetA.inPhiAttractor, true); assert.equal(facetA.attractorId, 'G_phi'); const facetB = core.evaluate({ W: 1, inside: true, margin: 0.1, gap: 0, kink: null, weights: { C_r: 1 }, classification: { facet: 'Facet-B', label: 'B', M_min: 2 }, state: { mode: 'ANALYZE' }, }); assert.equal(facetB.inPhiAttractor, false); assert.equal(facetB.attractorId, undefined); console.log('oracleKernelCore attractor tests passed');
++import assert from 'node:assert/strict';
++import { OracleKernelCore } from './oracleKernelCore';
++
++const core = new OracleKernelCore(2);
++
++const facetA = core.evaluate({
++  W: 1,
++  inside: true,
++  margin: 0.1,
++  gap: 0,
++  kink: null,
++  weights: { C_r: 1 },
++  classification: { facet: 'Facet-A', label: 'A', M_min: 2 },
++  state: { mode: 'BUILD_COMPRESS' },
++});
++assert.equal(facetA.inPhiAttractor, true);
++assert.equal(facetA.attractorId, 'G_phi');
++assert.equal(facetA.lawCompliance?.lawId, 'phi-A');
++assert.equal(facetA.lawCompliance?.irreversible, true);
++assert.equal(facetA.lawCompliance?.nearRecursion, false);
++assert.equal(facetA.lawCompliance?.inAttractor, true);
++
++const facetB = core.evaluate({
++  W: 1,
++  inside: true,
++  margin: 0.1,
++  gap: 0,
++  kink: null,
++  weights: { C_r: 1 },
++  classification: { facet: 'Facet-B', label: 'B', M_min: 2 },
++  state: { mode: 'ANALYZE' },
++});
++assert.equal(facetB.inPhiAttractor, false);
++assert.equal(facetB.attractorId, undefined);
++assert.equal(facetB.lawCompliance?.lawId, 'phi-A');
++assert.equal(facetB.lawCompliance?.irreversible, false);
++assert.equal(facetB.lawCompliance?.nearRecursion, false);
++assert.equal(facetB.lawCompliance?.inAttractor, false);
++
++const facetC = core.evaluate({
++  W: 1,
++  inside: true,
++  margin: 0.1,
++  gap: 0,
++  kink: null,
++  weights: { C_r: 1 },
++  classification: { facet: 'Facet-C', label: 'C', M_min: 2 },
++  state: { mode: 'BUILD_COMPRESS' },
++});
++assert.equal(facetC.inPhiAttractor, true);
++assert.equal(facetC.attractorId, 'G_phi');
++assert.equal(facetC.lawCompliance?.irreversible, true);
++assert.equal(facetC.lawCompliance?.nearRecursion, false);
++assert.equal(facetC.lawCompliance?.inAttractor, true);
++
++const phiOutside = core.evaluate({
++  W: 1,
++  inside: false,
++  margin: 0.1,
++  gap: 0,
++  kink: null,
++  weights: { C_r: 1 },
++  classification: { facet: 'Facet-C', label: 'C', M_min: 2 },
++  state: { mode: 'BUILD_COMPRESS' },
++});
++assert.equal(phiOutside.inPhiAttractor, false);
++assert.equal(phiOutside.attractorId, undefined);
++assert.equal(phiOutside.lawCompliance?.irreversible, true);
++assert.equal(phiOutside.lawCompliance?.nearRecursion, false);
++assert.equal(phiOutside.lawCompliance?.inAttractor, false);
++
++const fusion = core.evaluate({
++  W: 1,
++  inside: true,
++  margin: 0.1,
++  gap: 0,
++  kink: null,
++  weights: { C_r: 1 },
++  classification: { facet: 'Facet-A', label: 'A', M_min: 2 },
++  state: { mode: 'FUSION' },
++});
++assert.equal(fusion.inPhiAttractor, true);
++assert.equal(fusion.attractorId, 'G_phi');
++assert.equal(fusion.lawCompliance?.irreversible, true);
++assert.equal(fusion.lawCompliance?.nearRecursion, false);
++assert.equal(fusion.lawCompliance?.inAttractor, true);
++
++const nearRec = core.evaluate({
++  W: 1,
++  inside: true,
++  margin: 0.1,
++  gap: 0,
++  kink: null,
++  weights: { C_r: 1 },
++  classification: { facet: 'Facet-A', label: 'A', M_min: 2 },
++  state: {
++    mode: 'BUILD_COMPRESS',
++    phi: 2,
++    r: 2,
++    s: 0,
++    e: 4,
++  },
++});
++assert.equal(nearRec.lawCompliance?.nearRecursion, true);
++
++console.log('oracleKernelCore attractor tests passed');

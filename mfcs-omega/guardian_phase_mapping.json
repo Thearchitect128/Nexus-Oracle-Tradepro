@@ -1,0 +1,70 @@
+{
+  "artifact": "guardian_phase_mapping",
+  "version": "0.1.0-proposed",
+  "status": "design-proposal",
+  "purpose": "Bridge MFCS phases, breath stations, guardian mediation, and continuity checks.",
+  "mappings": [
+    {
+      "mfcs_phase": "Define",
+      "proposed_breath_station": "Station I — Intention",
+      "primary_function": "Frame the next cycle and open the problem surface.",
+      "continuity_check": "No undefined entry; cycle begins from a valid frame."
+    },
+    {
+      "mfcs_phase": "Generate",
+      "proposed_breath_station": "Station II — Witness A",
+      "primary_function": "Surface candidate options and signals.",
+      "continuity_check": "No phase skip; option growth remains bounded."
+    },
+    {
+      "mfcs_phase": "Choose",
+      "proposed_breath_station": "Station III — Witness B",
+      "primary_function": "Validate and select the coherent candidate.",
+      "continuity_check": "No rollback into Generate without explicit abort or reset."
+    },
+    {
+      "mfcs_phase": "Act",
+      "proposed_breath_station": "Station IV — Seal",
+      "primary_function": "Commit the selected transition or operator move.",
+      "continuity_check": "Committed action preserves phi-safety and traceability."
+    },
+    {
+      "mfcs_phase": "Reset",
+      "proposed_breath_station": "Recovery window after Seal",
+      "primary_function": "Clear latches, archive trace, and re-enter Define.",
+      "continuity_check": "Cycle closure achieved without illegal backward jumps."
+    }
+  ],
+  "guardian_roles": [
+    {
+      "guardian": "Gamma1 / Threshold",
+      "formal_reading": "Entry validity",
+      "use_in_bridge": "Guards Define -> Generate and any invocation boundary."
+    },
+    {
+      "guardian": "Gamma2 / Weights",
+      "formal_reading": "Symmetry and balance",
+      "use_in_bridge": "Checks cross-path balance before commitment."
+    },
+    {
+      "guardian": "Gamma3 / Cadence",
+      "formal_reading": "Temporal synchronization",
+      "use_in_bridge": "Aligns MFCS cadence with SABR / lattice timing."
+    },
+    {
+      "guardian": "Gamma4 / Hysteresis",
+      "formal_reading": "Persistence memory",
+      "use_in_bridge": "Implements no-rollback continuity."
+    },
+    {
+      "guardian": "Gamma5 / Seal",
+      "formal_reading": "Irreversible commitment",
+      "use_in_bridge": "Confirms AlwaysPhi only after consensus and seal."
+    }
+  ],
+  "operator_formula": {
+    "source_notation": "≈ ↻ ∧ ¬(↺) ⇒ G phi",
+    "working_interpretation": "If the system remains approximately recurrent and no rollback occurs, phi-safety must hold globally.",
+    "implementation_note": "Treat this as a bridge invariant to be checked against traces, not as a replacement for canonical MFCS or Fusion proofs."
+  }
+}

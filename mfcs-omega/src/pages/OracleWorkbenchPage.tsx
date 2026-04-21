@@ -1,13 +1,7 @@
 import React from 'react';
+import { EnvelopeReport } from '../lib/oracleKernelCore';
 
-type Evaluation = {
-  inPhiAttractor?: boolean;
-  attractorId?: string;
-  lawCompliance?: {
-    nearRecursion: boolean;
-    irreversible: boolean;
-  };
-};
+type Evaluation = Pick<EnvelopeReport, 'inPhiAttractor' | 'attractorId' | 'lawCompliance'>;
 
 type Props = {
   evaluation: Evaluation;
@@ -30,7 +24,7 @@ export default function OracleWorkbenchPage({ evaluation }: Props) {
     <section>
       {evaluation.inPhiAttractor && (
         <Badge title="Law φ-A: In G_φ attractor">
-          G_φ Active · {evaluation.attractorId}
+          G_φ Active{evaluation.attractorId ? ` · ${evaluation.attractorId}` : ''}
         </Badge>
       )}
 
