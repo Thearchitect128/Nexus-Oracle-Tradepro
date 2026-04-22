@@ -2,9 +2,6 @@ import type { Item, Node } from "./types.js";
 
 export function canAssign(item: Item, node: Node): boolean {
   if (node.used >= node.capacity) return false;
-  if (item.region && node.region && item.region !== node.region) {
-    return false;
-  }
   if (!item.requiredTags?.length) return true;
   const tags = new Set(node.tags ?? []);
   return item.requiredTags.every((tag: string) => tags.has(tag));
@@ -24,4 +21,9 @@ export function edgeCost(item: Item, node: Node): number {
     item.region && node.region && item.region !== node.region ? 10_000 : 0;
 
   return riskPriority + loadPenalty + latencyPenalty + regionPenalty;
+}
+
+export function finiteEdgeCost(item: Item, node: Node): number | null {
+  const cost = edgeCost(item, node);
+  return Number.isFinite(cost) ? cost : null;
 }
