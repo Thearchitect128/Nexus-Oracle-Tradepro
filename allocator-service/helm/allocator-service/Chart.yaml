@@ -1,0 +1,6 @@
+apiVersion: v2
+name: allocator-service
+description: Helm chart for allocator-service
+version: 0.1.0
+appVersion: "0.1.0"
+type: application

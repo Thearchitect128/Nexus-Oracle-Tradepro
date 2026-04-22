@@ -1,0 +1,28 @@
+name: allocator-service-ci
+
+on:
+  push:
+    paths:
+      - 'allocator-service/**'
+      - '.github/workflows/allocator-service-ci.yml'
+  pull_request:
+    paths:
+      - 'allocator-service/**'
+      - '.github/workflows/allocator-service-ci.yml'
+
+jobs:
+  build-test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: allocator-service
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: allocator-service/package.json
+      - run: npm install
+      - run: npm run build
+      - run: npm test
