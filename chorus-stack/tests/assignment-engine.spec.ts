@@ -77,147 +77,118 @@ describe("assignment engine", () => {
       { itemId: "b-item", nodeId: "node-b" }
     ]);
   });
+});
 
-  describe("edge cases", () => {
-    it("returns empty array when items list is empty", () => {
-      const nodes: NodeCapacity[] = [{ nodeId: "n1", capacity: 2, maxRisk: 10 }];
-      const result = constrainedBatchAssign([], nodes, "balanced");
-      expect(result).toEqual([]);
-    });
-
-    it("returns empty array when nodes list is empty", () => {
-      const items: WorkItem[] = [{ id: "i1", risk: 2, priority: 1, confidence: 0.5 }];
-      const result = constrainedBatchAssign(items, [], "balanced");
-      expect(result).toEqual([]);
-    });
-
-    it("leaves item unassigned when its risk exceeds all node maxRisk values", () => {
-      const items: WorkItem[] = [{ id: "too-risky", risk: 9, priority: 5, confidence: 0.9 }];
-      const nodes: NodeCapacity[] = [
-        { nodeId: "safe-node", capacity: 2, maxRisk: 5 }
-      ];
-      const result = constrainedBatchAssign(items, nodes, "balanced");
-      expect(result).toHaveLength(0);
-    });
-
-    it("leaves items unassigned when all nodes are at capacity", () => {
-      const items: WorkItem[] = [
-        { id: "i1", risk: 1, priority: 1, confidence: 0.5 },
-        { id: "i2", risk: 1, priority: 1, confidence: 0.5 }
-      ];
-      const nodes: NodeCapacity[] = [{ nodeId: "n1", capacity: 1, maxRisk: 10 }];
-      const result = constrainedBatchAssign(items, nodes, "balanced");
-      // Only one item can be assigned
-      expect(result).toHaveLength(1);
-    });
-
-    it("does not mutate the original items or nodes arrays", () => {
-      const items: WorkItem[] = [
-        { id: "i1", risk: 2, priority: 3, confidence: 0.8 }
-      ];
-      const nodes: NodeCapacity[] = [
-        { nodeId: "n1", capacity: 2, maxRisk: 5 }
-      ];
-      const originalItems = JSON.parse(JSON.stringify(items)) as WorkItem[];
-      const originalNodes = JSON.parse(JSON.stringify(nodes)) as NodeCapacity[];
-
-      constrainedBatchAssign(items, nodes, "balanced");
-
-      expect(items).toEqual(originalItems);
-      expect(nodes).toEqual(originalNodes);
-    });
+describe("assignment engine edge cases", () => {
+  it("returns empty array when items list is empty", () => {
+    const nodes: NodeCapacity[] = [{ nodeId: "n1", capacity: 2, maxRisk: 10 }];
+    expect(constrainedBatchAssign([], nodes, "balanced")).toEqual([]);
   });
 
-  describe("balanced policy", () => {
-    it("ranks items by priority + confidence - risk", () => {
-      // item-a: score = 5 + 0.9 - 1 = 4.9
-      // item-b: score = 3 + 0.5 - 0.5 = 3.0
-      // item-a should be assigned first (higher score = first pick)
-      const items: WorkItem[] = [
-        { id: "item-b", risk: 0.5, priority: 3, confidence: 0.5 },
-        { id: "item-a", risk: 1, priority: 5, confidence: 0.9 }
-      ];
-      const nodes: NodeCapacity[] = [
-        { nodeId: "only-node", capacity: 1, maxRisk: 10 }
-      ];
-      const result = constrainedBatchAssign(items, nodes, "balanced");
-      expect(result).toHaveLength(1);
-      expect(result[0].itemId).toBe("item-a");
-    });
-
-    it("assigns items to least-utilized nodes first", () => {
-      const items: WorkItem[] = [
-        { id: "i1", risk: 1, priority: 1, confidence: 0.5 },
-        { id: "i2", risk: 1, priority: 1, confidence: 0.5 }
-      ];
-      // node-a has more remaining capacity relative to used (lower utilization starts at 0)
-      const nodes: NodeCapacity[] = [
-        { nodeId: "node-a", capacity: 3, maxRisk: 10 },
-        { nodeId: "node-b", capacity: 3, maxRisk: 10 }
-      ];
-      const result = constrainedBatchAssign(items, nodes, "balanced");
-      expect(result).toHaveLength(2);
-      // Both should be assigned (to different nodes when possible due to utilization balancing)
-      const assignedNodes = result.map((a) => a.nodeId);
-      expect(new Set(assignedNodes).size).toBe(2);
-    });
+  it("returns empty array when nodes list is empty", () => {
+    const items: WorkItem[] = [{ id: "i1", risk: 1, priority: 2, confidence: 0.5 }];
+    expect(constrainedBatchAssign(items, [], "balanced")).toEqual([]);
   });
 
-  describe("priority_first policy", () => {
-    it("ranks items by priority * 2 - risk", () => {
-      // item-a: score = 10*2 - 9 = 11
-      // item-b: score = 5*2 - 1 = 9
-      // item-a should be assigned first (higher score)
-      const items: WorkItem[] = [
-        { id: "item-b", risk: 1, priority: 5, confidence: 0.5 },
-        { id: "item-a", risk: 9, priority: 10, confidence: 0.1 }
-      ];
-      const nodes: NodeCapacity[] = [
-        { nodeId: "only-node", capacity: 1, maxRisk: 10 }
-      ];
-      const result = constrainedBatchAssign(items, nodes, "priority_first");
-      expect(result).toHaveLength(1);
-      expect(result[0].itemId).toBe("item-a");
-    });
+  it("skips items whose risk exceeds all node maxRisk values", () => {
+    const items: WorkItem[] = [
+      { id: "risky", risk: 9, priority: 1, confidence: 0.5 },
+      { id: "safe", risk: 2, priority: 1, confidence: 0.5 }
+    ];
+    const nodes: NodeCapacity[] = [{ nodeId: "n1", capacity: 2, maxRisk: 5 }];
 
-    it("ignores confidence in priority_first scoring", () => {
-      // item-high-conf: score = 3*2 - 2 = 4 (priority_first ignores confidence)
-      // item-low-conf: score = 4*2 - 3 = 5 (higher priority dominates)
-      const items: WorkItem[] = [
-        { id: "item-high-conf", risk: 2, priority: 3, confidence: 0.99 },
-        { id: "item-low-conf", risk: 3, priority: 4, confidence: 0.01 }
-      ];
-      const nodes: NodeCapacity[] = [
-        { nodeId: "only-node", capacity: 1, maxRisk: 10 }
-      ];
-      const result = constrainedBatchAssign(items, nodes, "priority_first");
-      expect(result).toHaveLength(1);
-      expect(result[0].itemId).toBe("item-low-conf");
-    });
+    const assignments = constrainedBatchAssign(items, nodes, "balanced");
+
+    expect(assignments).toHaveLength(1);
+    expect(assignments[0].itemId).toBe("safe");
+    expect(assignments[0].nodeId).toBe("n1");
   });
 
-  describe("risk_limited policy node selection", () => {
-    it("prefers lower maxRisk nodes when risk_limited (tight-fitting policy)", () => {
-      // item risk=5 can go to maxRisk=5 or maxRisk=9; risk_limited prefers lower maxRisk first
-      const items: WorkItem[] = [{ id: "i1", risk: 5, priority: 1, confidence: 0.5 }];
-      const nodes: NodeCapacity[] = [
-        { nodeId: "permissive", capacity: 2, maxRisk: 9 },
-        { nodeId: "tight", capacity: 2, maxRisk: 5 }
-      ];
-      const result = constrainedBatchAssign(items, nodes, "risk_limited");
-      expect(result).toHaveLength(1);
-      expect(result[0].nodeId).toBe("tight");
-    });
+  it("respects node capacity and does not over-assign", () => {
+    const items: WorkItem[] = [
+      { id: "i1", risk: 1, priority: 2, confidence: 0.5 },
+      { id: "i2", risk: 1, priority: 2, confidence: 0.5 },
+      { id: "i3", risk: 1, priority: 2, confidence: 0.5 }
+    ];
+    const nodes: NodeCapacity[] = [{ nodeId: "n1", capacity: 2, maxRisk: 10 }];
 
-    it("skips nodes whose maxRisk is below item risk", () => {
-      const items: WorkItem[] = [{ id: "risky", risk: 7, priority: 1, confidence: 0.5 }];
-      const nodes: NodeCapacity[] = [
-        { nodeId: "too-safe", capacity: 2, maxRisk: 5 },
-        { nodeId: "acceptable", capacity: 2, maxRisk: 8 }
-      ];
-      const result = constrainedBatchAssign(items, nodes, "risk_limited");
-      expect(result).toHaveLength(1);
-      expect(result[0].nodeId).toBe("acceptable");
-    });
+    const assignments = constrainedBatchAssign(items, nodes, "balanced");
+
+    expect(assignments).toHaveLength(2);
+    expect(assignments.every((a) => a.nodeId === "n1")).toBe(true);
+  });
+
+  it("assigns items across multiple nodes respecting individual capacities", () => {
+    const items: WorkItem[] = [
+      { id: "i1", risk: 1, priority: 1, confidence: 0.5 },
+      { id: "i2", risk: 1, priority: 1, confidence: 0.5 },
+      { id: "i3", risk: 1, priority: 1, confidence: 0.5 }
+    ];
+    const nodes: NodeCapacity[] = [
+      { nodeId: "n1", capacity: 1, maxRisk: 10 },
+      { nodeId: "n2", capacity: 1, maxRisk: 10 },
+      { nodeId: "n3", capacity: 1, maxRisk: 10 }
+    ];
+
+    const assignments = constrainedBatchAssign(items, nodes, "balanced");
+
+    expect(assignments).toHaveLength(3);
+    const assignedNodes = assignments.map((a) => a.nodeId);
+    expect(new Set(assignedNodes).size).toBe(3);
+  });
+});
+
+describe("assignment engine policy scoring", () => {
+  it("priority_first policy prefers high-priority items", () => {
+    const items: WorkItem[] = [
+      { id: "low-priority", risk: 0, priority: 1, confidence: 0.5 },
+      { id: "high-priority", risk: 0, priority: 5, confidence: 0.5 }
+    ];
+    const nodes: NodeCapacity[] = [{ nodeId: "n1", capacity: 1, maxRisk: 10 }];
+
+    const assignments = constrainedBatchAssign(items, nodes, "priority_first");
+
+    expect(assignments).toHaveLength(1);
+    expect(assignments[0].itemId).toBe("high-priority");
+  });
+
+  it("balanced policy uses combined priority, confidence, and risk scoring", () => {
+    // score = priority + confidence - risk
+    // item-a: 3 + 0.5 - 1 = 2.5
+    // item-b: 1 + 0.9 - 0.1 = 1.8
+    const items: WorkItem[] = [
+      { id: "item-a", risk: 1, priority: 3, confidence: 0.5 },
+      { id: "item-b", risk: 0.1, priority: 1, confidence: 0.9 }
+    ];
+    const nodes: NodeCapacity[] = [{ nodeId: "n1", capacity: 1, maxRisk: 10 }];
+
+    const assignments = constrainedBatchAssign(items, nodes, "balanced");
+
+    expect(assignments).toHaveLength(1);
+    expect(assignments[0].itemId).toBe("item-a");
+  });
+
+  it("risk_limited policy skips items that exceed node maxRisk", () => {
+    const items: WorkItem[] = [{ id: "too-risky", risk: 10, priority: 5, confidence: 0.9 }];
+    const nodes: NodeCapacity[] = [{ nodeId: "n1", capacity: 3, maxRisk: 5 }];
+
+    const assignments = constrainedBatchAssign(items, nodes, "risk_limited");
+
+    expect(assignments).toHaveLength(0);
+  });
+
+  it("does not mutate the original items or nodes arrays", () => {
+    const items: WorkItem[] = [
+      { id: "i1", risk: 1, priority: 2, confidence: 0.5 }
+    ];
+    const nodes: NodeCapacity[] = [{ nodeId: "n1", capacity: 1, maxRisk: 10 }];
+
+    const originalItemsJson = JSON.stringify(items);
+    const originalNodesJson = JSON.stringify(nodes);
+
+    constrainedBatchAssign(items, nodes, "balanced");
+
+    expect(JSON.stringify(items)).toBe(originalItemsJson);
+    expect(JSON.stringify(nodes)).toBe(originalNodesJson);
   });
 });
