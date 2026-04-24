@@ -44,7 +44,7 @@ export interface EnvelopeReport {
   };
 }
 
-const PHI_FACETS = ['Facet-A', 'Facet-C'] as const;
+const PHI_FACETS = ['Facet-A', 'Facet-C'];
 
 export class OracleKernelCore {
   constructor(
@@ -59,10 +59,6 @@ export class OracleKernelCore {
 
     const lawCompliance = {
       lawId: 'phi-A' as const,
-      // TODO(phi-A): near-recursion is a formal premise of the law, but this
-      // kernel currently does not compute Distance(f^n(x), x) <= ε over
-      // 1..MaxN. Until that iteration is modeled or provided as an input,
-      // report false explicitly rather than implying the check was performed.
       nearRecursion: false,
       irreversible: state.mode === 'BUILD_COMPRESS' || state.mode === 'FUSION',
       inAttractor: inPhiAttractor,

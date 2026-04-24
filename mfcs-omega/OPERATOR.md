@@ -1,119 +1,125 @@
-# OPERATOR GUIDE — MFCS–OMEGA SYSTEM
+# OPERATOR GUIDE - MFCS-OMEGA SYSTEM
 
-This guide defines the operator workflow for the MFCS–OMEGA system, including
-verification, packaging, trace analysis, Digital Mirror generation, and Oracle
-operation.
+This guide defines the practical operator workflow for verification, trace
+analysis, Digital Mirror generation, packaging, and the browser surface.
 
----
+## 1. Repository Validation
 
-## 1. Verification Pipeline (MFCS Core)
+Run the repository-level checks before formal verification or deployment:
 
-### Run full TLA+ verification
+```bash
+python tools/validate_repo.py
+```
+
+This confirms that the key docs, mirror files, and deployable site assets are
+present and internally consistent.
+
+## 2. Verification Pipeline
+
+### Cross-platform verification entrypoint
+
+```bash
+python tools/verify.py
+```
+
+Requirements:
+
+- Java 17+
+- `TLA_JAR` or `TLA_HOME`
+
+### Shell entrypoint
+
+If you already have a Unix-like shell environment configured:
+
 ```bash
 ./tools/verify.sh
 ```
 
-This executes:
-- MFCS.tla
-- All invariants in `spec/modules/Invariants.tla`
-- Envelope laws
-- Hardstop proofs
-- Global liveness
+### Run TLC directly for a specific model
 
-### Run TLC with a specific model
 ```bash
 cd tlc
 ./run.sh MFCS
 ```
 
 Traces appear in:
+
 - `tlc/traces/raw/`
 - `tlc/traces/classified/`
 
----
+## 3. Trace Analysis
 
-## 2. Trace Analysis
+Convert and classify traces with the adapters in `tlc/adapters/`:
 
-### Convert a raw trace to facets
 ```bash
-python3 tlc/adapters/trace_to_facet.py tlc/traces/raw/trace.json
+python tlc/adapters/trace_to_facet.py tlc/traces/raw/trace.json
+python tlc/adapters/peak_classifier.py tlc/traces/raw/trace.json
 ```
 
-### Classify peaks
-```bash
-python3 tlc/adapters/peak_classifier.py tlc/traces/raw/trace.json
-```
+## 4. Digital Mirror
 
----
+Rebuild the reviewer-facing mirror:
 
-## 3. Build the Digital Mirror
 ```bash
-python3 tools/build-mirror.py
+python tools/build-mirror.py
 ```
 
 Outputs:
+
 - `digital-mirror/mirror.json`
 - `digital-mirror/mirror-build-log.md`
+- `digital-mirror/mirror-manifest.md`
 
----
+## 5. Operator Surface
 
-## 4. Package a Release
+Preview the static operator surface locally:
+
+```bash
+python -m http.server 4173
+```
+
+Then open `http://127.0.0.1:4173/`.
+
+The page renders:
+
+- repository architecture summary
+- live Digital Mirror data from `digital-mirror/mirror.json`
+- an envelope workbench that mirrors the oracle kernel logic
+
+## 6. Release Packaging
+
+Package a release artifact:
+
 ```bash
 ./tools/package.sh
 ```
 
-Outputs:
-- `release/mfcs-omega.tar.gz`
+Optional checksum refresh:
 
-Generate checksums:
 ```bash
-python3 tools/scripts/generate_checksums.py
+python tools/scripts/generate_checksums.py
 ```
 
----
+## 7. OMEGA Oracle References
 
-## 5. OMEGA Oracle Operation
+- Kernel loop: `oracle/omega-kernel/kernel-loop.md`
+- Kernel invariants: `oracle/omega-kernel/invariants.md`
+- Spatial lattice: `oracle/spatial-layer/lattice.md`
+- Decision surfaces: `oracle/console/decision-surfaces.md`
+- Operator console: `oracle/console/operator-console.md`
+- Agent protocols: `oracle/agents/agent-spec.md`
 
-### Kernel Loop
-See `oracle/omega-kernel/kernel-loop.md`.
+## 8. GitHub and Vercel Readiness
 
-### Spatial Layer
-See `oracle/spatial-layer/lattice.md`.
+- `python tools/validate_repo.py` is the fast GitHub sanity check.
+- `python tools/verify.py` is the formal verification entrypoint used in CI.
+- The root static site is deployable to Vercel without a build step.
 
-### Agents
-See `oracle/agents/agent-spec.md`.
+## 9. First Release Checklist
 
-### Operator Console
-See `oracle/console/operator-console.md`.
-
----
-
-## 6. Codex + VS Code Extension
-
-### Build extension
-```bash
-cd codex/vscode-extension
-npm install
-npm run build
-```
-
-### Activate in VS Code
-Press F5 to launch extension host.
-
----
-
-## 7. GitHub Workflows
-
-- `verify.yml` runs TLA+ verification on every push.
-- `release.yml` can be extended to publish artifacts.
-
----
-
-## 8. First Release Checklist
-
-- [ ] Run verification
-- [ ] Generate checksums
-- [ ] Build Digital Mirror
-- [ ] Package release
-- [ ] Tag version
+- [ ] Run repository validation
+- [ ] Run formal verification
+- [ ] Generate or refresh the Digital Mirror
+- [ ] Package the release
+- [ ] Tag the version
 - [ ] Push to GitHub
