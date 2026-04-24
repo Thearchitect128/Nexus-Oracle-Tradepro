@@ -118,6 +118,30 @@ Set them before starting the web or use an .env approach in your dev environment
 
 ---
 
+
+## Truth-first interface guardrails
+
+When testing claims that include strong visuals + numeric anchors (e.g., `432 Hz`, `528 Hz`, "resonance" labels), treat them as **unverified inputs** unless they are bound to measurable evidence.
+
+Recommended contract for UI + engine:
+
+- **Provenance required**: every displayed metric must include source id, measurement method, and timestamp.
+- **Deterministic mapping**: visual state should be a pure function of validated state, not free text claims.
+- **Reproducibility**: values must be derivable from persisted inputs + code version.
+- **Invariant enforcement**: if a claim cannot be derived, block render or mark as unverified.
+- **Auditability**: hash-lock state transitions and keep an append-only event log for post-hoc verification.
+
+Suggested implementation path:
+
+1. Add `verification` metadata to lattice packets (`source`, `method`, `confidence`, `measured_at`).
+2. Reject packets that fail schema + invariant checks in `apps/server` before broadcast.
+3. In `apps/web`, render a "verified" badge only when proof metadata is complete.
+4. Add test vectors that intentionally include persuasive-but-invalid numeric claims and assert rejection.
+
+This keeps the system aligned with a simple rule: **if it cannot be derived, it cannot be displayed**.
+
+---
+
 ## Deploy
 
 - Vercel: Deploy `apps/web` to Vercel; point `NEXT_PUBLIC_WS_URL` at a publicly accessible WS server (or deploy the server somewhere public as well).
