@@ -1,0 +1,762 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TradePro Elite ≈↻ ॐ️ 🦁 🐉 🦉 🔱 - Operator-Grade Trading Simulator</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<script>
+  tailwind.config = {
+    darkMode: 'class',
+    theme: {
+      extend: {
+        colors: {
+          primary: '#3b82f6',
+          secondary: '#64748b',
+          success: '#10b981',
+          danger: '#ef4444',
+          warning: '#f59e0b',
+          info: '#06b6d4',
+        }
+      }
+    }
+  }
+</script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
+body { font-family: 'Inter', sans-serif; }
+.mono { font-family: 'JetBrains Mono', monospace; }
+.glass {
+  background: rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+.dark .glass {
+  background: rgba(15, 23, 42, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+.stock-up { color: #10b981; }
+.stock-down { color: #ef4444; }
+.dark .stock-up { color: #34d399; }
+.dark .stock-down { color: #f87171; }
+.scrollbar-hide::-webkit-scrollbar { display: none; }
+.scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+.animate-pulse-slow { animation: pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
+@keyframes pulse { 0%, 100% { opacity: 0.7; } 50% { opacity: 1; } }
+.slide-in { animation: slideIn 0.4s cubic-bezier(0.16, 1, 0.3, 1); }
+@keyframes slideIn {
+  from { transform: translateY(24px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+.fade-in { animation: fadeIn 0.3s ease-out; }
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+.ticker-tape { animation: ticker 30s linear infinite; }
+@keyframes ticker { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
+.event-flash { animation: eventFlash 0.5s ease-in-out 3; }
+@keyframes eventFlash { 0%, 100% { background-color: transparent; } 50% { background-color: rgba(245, 158, 11, 0.2); } }
+.risk-bar { transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1); }
+.toast-anim { transform: translateY(0); opacity: 1; }
+</style>
+</head>
+<body class="bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-gray-100 transition-colors duration-300 min-h-screen">
+
+<div class="bg-gray-900 dark:bg-black text-white py-1.5 overflow-hidden border-b border-gray-800">
+  <div class="flex whitespace-nowrap ticker-tape" id="tickerTape"></div>
+</div>
+
+<header class="sticky top-0 z-40 glass shadow-lg">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="flex justify-between items-center h-16">
+      <div class="flex items-center space-x-3">
+        <div class="w-10 h-10 bg-gradient-to-br from-primary to-blue-600 rounded-lg flex items-center justify-center shadow-lg">
+          <i class="fas fa-chart-line text-white text-xl"></i>
+        </div>
+        <div>
+          <h1 class="text-xl font-bold tracking-tight">TradePro <span class="text-primary">Elite</span> ≈↻ ॐ️ 🦁 🐉 🦉 🔱</h1>
+          <p class="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1.5">
+            <span id="marketStatusDot" class="w-2 h-2 rounded-full bg-success animate-pulse-slow"></span>
+            <span id="marketStatusText">Market Open</span>
+            <span class="text-gray-400">|</span>
+            <span id="marketRegime" class="font-medium text-warning">Bull Phase</span>
+            <span class="text-gray-400">|</span>
+            <span id="marketSentiment" class="font-medium text-success">Risk-On</span>
+          </p>
+        </div>
+      </div>
+      <div class="flex items-center space-x-4">
+        <div class="hidden lg:flex items-center space-x-4 text-sm">
+          <div class="flex items-center space-x-1.5"><span class="text-gray-500 dark:text-gray-400 text-xs">VIX</span><span class="font-semibold mono" id="vixValue">14.23</span></div>
+          <div class="flex items-center space-x-1.5"><span class="text-gray-500 dark:text-gray-400 text-xs">VOL</span><span class="font-semibold mono" id="volumeValue">2.4B</span></div>
+        </div>
+        <button onclick="toggleTheme()" class="p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-800 transition-colors"><i class="fas fa-moon dark:hidden text-gray-600"></i><i class="fas fa-sun hidden dark:block text-yellow-400"></i></button>
+        <button onclick="toggleSettings()" class="p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-800 transition-colors"><i class="fas fa-cog text-gray-600 dark:text-gray-300"></i></button>
+      </div>
+    </div>
+  </div>
+</header>
+
+<div id="eventBanner" class="hidden bg-yellow-500/10 border-y border-yellow-400/20">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex flex-col md:flex-row md:items-center justify-between gap-3 text-sm text-yellow-900 dark:text-yellow-100">
+    <div class="flex items-center gap-3"><i class="fas fa-bolt"></i><div><div id="eventTitle" class="font-semibold"></div><div id="eventDesc" class="text-xs opacity-80"></div></div></div>
+    <div class="text-xs font-medium"><span id="eventImpact"></span> · <span id="eventTimer"></span></div>
+  </div>
+</div>
+
+<main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+    <div class="bg-white dark:bg-gray-900 rounded-xl shadow-md p-5 border border-gray-200 dark:border-gray-800 slide-in" style="animation-delay: 0.1s">
+      <div class="flex items-center justify-between mb-2"><h3 class="text-sm font-medium text-gray-500 dark:text-gray-400">Available Funds</h3><div class="w-8 h-8 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center"><i class="fas fa-wallet text-primary text-sm"></i></div></div>
+      <p class="text-2xl font-bold mono" id="availableFunds">$50,000.00</p>
+      <div class="flex items-center gap-2 mt-1"><div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5"><div id="cashBar" class="bg-primary h-1.5 rounded-full risk-bar" style="width: 100%"></div></div><span class="text-xs text-gray-400 mono" id="cashPct">100%</span></div>
+    </div>
+    <div class="bg-white dark:bg-gray-900 rounded-xl shadow-md p-5 border border-gray-200 dark:border-gray-800 slide-in" style="animation-delay: 0.2s">
+      <div class="flex items-center justify-between mb-2"><h3 class="text-sm font-medium text-gray-500 dark:text-gray-400">Total Assets</h3><div class="w-8 h-8 bg-purple-100 dark:bg-purple-900/30 rounded-full flex items-center justify-center"><i class="fas fa-piggy-bank text-purple-500 text-sm"></i></div></div>
+      <p class="text-2xl font-bold mono" id="totalAssets">$50,000.00</p>
+      <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Total portfolio NAV</p>
+    </div>
+    <div class="bg-white dark:bg-gray-900 rounded-xl shadow-md p-5 border border-gray-200 dark:border-gray-800 slide-in" style="animation-delay: 0.3s">
+      <div class="flex items-center justify-between mb-2"><h3 class="text-sm font-medium text-gray-500 dark:text-gray-400">Market Value</h3><div class="w-8 h-8 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center"><i class="fas fa-chart-pie text-success text-sm"></i></div></div>
+      <p class="text-2xl font-bold mono" id="marketValue">$0.00</p>
+      <div class="flex items-center gap-2 mt-1"><span class="text-xs text-gray-500 dark:text-gray-400">Max Exposure:</span><span class="text-xs font-medium mono" id="maxExposure">$0</span></div>
+    </div>
+    <div class="bg-white dark:bg-gray-900 rounded-xl shadow-md p-5 border border-gray-200 dark:border-gray-800 slide-in" style="animation-delay: 0.4s">
+      <div class="flex items-center justify-between mb-2"><h3 class="text-sm font-medium text-gray-500 dark:text-gray-400">Daily P&L</h3><div class="w-8 h-8 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center"><i class="fas fa-chart-bar text-danger text-sm"></i></div></div>
+      <p class="text-2xl font-bold mono stock-up" id="dailyPL">$0.00</p>
+      <p class="text-xs text-gray-500 dark:text-gray-400 mt-1" id="dailyPLPct">+0.00% today</p>
+    </div>
+  </div>
+
+  <div class="bg-white dark:bg-gray-900 rounded-xl shadow-md border border-gray-200 dark:border-gray-800 p-5 slide-in" style="animation-delay: 0.45s">
+    <div class="flex items-center justify-between mb-4"><h2 class="text-lg font-semibold flex items-center gap-2"><i class="fas fa-shield-alt text-primary"></i> Risk Dashboard</h2><span id="riskLevel" class="text-xs px-3 py-1 rounded-full bg-success/10 text-success font-semibold">Low Risk</span></div>
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div><div class="flex justify-between text-xs mb-1"><span class="text-gray-500 dark:text-gray-400">Portfolio Heat</span><span class="font-medium mono" id="portfolioHeat">0%</span></div><div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2"><div id="heatBar" class="bg-danger h-2 rounded-full risk-bar" style="width: 0%"></div></div></div>
+      <div><div class="flex justify-between text-xs mb-1"><span class="text-gray-500 dark:text-gray-400">Concentration</span><span class="font-medium mono" id="concentration">0%</span></div><div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2"><div id="concBar" class="bg-warning h-2 rounded-full risk-bar" style="width: 0%"></div></div></div>
+      <div><div class="flex justify-between text-xs mb-1"><span class="text-gray-500 dark:text-gray-400">Drawdown</span><span class="font-medium mono" id="drawdown">0.0%</span></div><div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2"><div id="ddBar" class="bg-danger h-2 rounded-full risk-bar" style="width: 0%"></div></div></div>
+      <div><div class="flex justify-between text-xs mb-1"><span class="text-gray-500 dark:text-gray-400">Beta Exposure</span><span class="font-medium mono" id="betaExposure">0.00</span></div><div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2"><div id="betaBar" class="bg-success h-2 rounded-full risk-bar" style="width: 0%"></div></div></div>
+    </div>
+  </div>
+
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <div class="lg:col-span-2 bg-white dark:bg-gray-900 rounded-xl shadow-md border border-gray-200 dark:border-gray-800 p-5 slide-in" style="animation-delay: 0.5s">
+      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
+        <div><h2 class="text-lg font-semibold">Market Overview</h2><p class="text-xs text-gray-500 dark:text-gray-400">Real-time microstructure view with regime-driven movement.</p></div>
+        <div class="flex items-center gap-2 text-xs text-gray-500"><span class="inline-flex items-center gap-1"><i class="fas fa-wave-square"></i><span id="chartRegime">Trending Up</span></span><span class="inline-flex items-center gap-1"><i class="fas fa-arrow-up-right-dots"></i><span id="dayOpen">$50,000</span></span></div>
+      </div>
+      <div class="relative h-72"><canvas id="marketChart" class="h-full w-full"></canvas></div>
+      <div class="grid grid-cols-4 gap-4 mt-4 pt-4 border-t border-gray-200 dark:border-gray-800">
+        <div class="text-center"><p class="text-xs text-gray-500 dark:text-gray-400">Open</p><p class="font-semibold mono" id="dayOpen">$50,000</p></div>
+        <div class="text-center"><p class="text-xs text-gray-500 dark:text-gray-400">High</p><p class="font-semibold mono text-success" id="dayHigh">$50,000</p></div>
+        <div class="text-center"><p class="text-xs text-gray-500 dark:text-gray-400">Low</p><p class="font-semibold mono text-danger" id="dayLow">$50,000</p></div>
+        <div class="text-center"><p class="text-xs text-gray-500 dark:text-gray-400">Prev Close</p><p class="font-semibold mono" id="prevClose">$49,000</p></div>
+      </div>
+    </div>
+
+    <div class="bg-white dark:bg-gray-900 rounded-xl shadow-md border border-gray-200 dark:border-gray-800 p-5 slide-in" style="animation-delay: 0.55s">
+      <h2 class="text-lg font-semibold mb-4 flex items-center gap-2"><i class="fas fa-exchange-alt text-primary"></i> Order Entry</h2>
+      <div class="space-y-4">
+        <div class="flex rounded-2xl bg-gray-100 dark:bg-gray-800 p-1">
+          <button id="buyBtn" onclick="setOrderType('buy')" class="flex-1 py-2 text-sm font-medium rounded-xl bg-white dark:bg-gray-700 text-success shadow-sm">Buy</button>
+          <button id="sellBtn" onclick="setOrderType('sell')" class="flex-1 py-2 text-sm font-medium rounded-xl text-gray-500 dark:text-gray-400">Sell</button>
+        </div>
+        <div class="flex rounded-2xl bg-gray-100 dark:bg-gray-800 p-1">
+          <button id="marketBtn" onclick="setOrderMode('market')" class="flex-1 py-2 text-xs font-medium rounded-xl bg-white dark:bg-gray-700 text-primary shadow-sm">Market</button>
+          <button id="limitBtn" onclick="setOrderMode('limit')" class="flex-1 py-2 text-xs font-medium rounded-xl text-gray-500 dark:text-gray-400">Limit</button>
+          <button id="stopBtn" onclick="setOrderMode('stop')" class="flex-1 py-2 text-xs font-medium rounded-xl text-gray-500 dark:text-gray-400">Stop</button>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Symbol</label>
+          <input id="orderSymbol" type="text" placeholder="AAPL" class="w-full px-4 py-3 rounded-2xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-950 text-sm text-gray-900 dark:text-gray-100" onchange="selectStock(this.value.toUpperCase())">
+        </div>
+        <div id="limitPriceContainer" class="hidden">
+          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Limit / Stop Price</label>
+          <input id="orderPrice" type="number" step="0.01" placeholder="Price" class="w-full px-4 py-3 rounded-2xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-950 text-sm text-gray-900 dark:text-gray-100" oninput="calculateOrderPreview()">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Quantity</label>
+          <input id="orderQty" type="number" min="1" placeholder="100" class="w-full px-4 py-3 rounded-2xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-950 text-sm text-gray-900 dark:text-gray-100" oninput="calculateOrderPreview()">
+        </div>
+        <div class="rounded-3xl bg-gray-50 dark:bg-gray-950 border border-gray-200 dark:border-gray-800 p-4">
+          <p class="text-xs text-gray-500">Estimated Fill</p>
+          <p id="orderPreview" class="mt-2 text-sm font-semibold mono text-gray-900 dark:text-gray-100">Enter order details to preview fill.</p>
+          <p id="exposureWarning" class="mt-2 text-xs text-warning"></p>
+        </div>
+        <button id="submitOrderBtn" onclick="submitOrder()" class="w-full py-3 rounded-2xl bg-primary text-white font-semibold hover:bg-blue-500 transition">Place Order</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid grid-cols-1 xl:grid-cols-3 gap-6">
+    <section class="xl:col-span-2 bg-white dark:bg-gray-900 rounded-xl shadow-md border border-gray-200 dark:border-gray-800 p-5 slide-in" style="animation-delay: 0.6s">
+      <div class="flex items-center justify-between mb-4"><h2 class="text-lg font-semibold">Market Watch</h2><button onclick="refreshQuotes()" class="px-3 py-2 text-xs font-semibold rounded-full bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200 hover:bg-gray-200">Refresh</button></div>
+      <div class="overflow-x-auto rounded-3xl border border-gray-200 dark:border-gray-800">
+        <table class="min-w-full text-left text-sm"><thead class="bg-gray-50 dark:bg-gray-950/50 text-xs uppercase tracking-[0.15em] text-gray-500 dark:text-gray-400"><tr><th class="px-4 py-3">Symbol</th><th class="px-4 py-3">Name</th><th class="px-4 py-3 text-right">Bid</th><th class="px-4 py-3 text-right">Ask</th><th class="px-4 py-3 text-right">Price</th><th class="px-4 py-3 text-right">Change</th><th class="px-4 py-3 text-right">Vol</th><th class="px-4 py-3"></th></tr></thead><tbody id="stockTableBody" class="divide-y divide-gray-100 dark:divide-gray-800"></tbody></table>
+      </div>
+    </section>
+    <section class="bg-white dark:bg-gray-900 rounded-xl shadow-md border border-gray-200 dark:border-gray-800 p-5 slide-in" style="animation-delay: 0.65s">
+      <div class="flex items-center justify-between mb-4"><h2 class="text-lg font-semibold">Open Positions</h2><span id="activeOrdersCount" class="text-xs text-gray-500">0 orders</span></div>
+      <div id="holdingsList" class="space-y-3"></div>
+      <div class="mt-6">
+        <h3 class="text-xs uppercase tracking-[0.2em] text-gray-500 mb-3">Active Orders</h3>
+        <div class="overflow-hidden rounded-3xl border border-gray-200 dark:border-gray-800">
+          <table class="min-w-full text-left text-sm"><thead class="bg-gray-50 dark:bg-gray-950/50 text-xs uppercase tracking-[0.15em] text-gray-500 dark:text-gray-400"><tr><th class="px-3 py-3">Time</th><th class="px-3 py-3">Side</th><th class="px-3 py-3">Symbol</th><th class="px-3 py-3">Qty</th><th class="px-3 py-3">Price</th><th class="px-3 py-3">Type</th></tr></thead><tbody id="activeOrdersBody" class="divide-y divide-gray-100 dark:divide-gray-800"></tbody></table>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <div class="grid grid-cols-1 xl:grid-cols-3 gap-6">
+    <section class="xl:col-span-2 bg-white dark:bg-gray-900 rounded-xl shadow-md border border-gray-200 dark:border-gray-800 p-5 slide-in" style="animation-delay: 0.7s">
+      <div class="flex items-center justify-between mb-4"><h2 class="text-lg font-semibold">Trade Log</h2><div class="flex items-center gap-2"><button onclick="clearTrades()" class="px-3 py-2 text-xs font-semibold rounded-full bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200 hover:bg-gray-200">Clear Trades</button><button onclick="exportTrades()" class="px-3 py-2 text-xs font-semibold rounded-full bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200 hover:bg-gray-200">Export CSV</button></div></div>
+      <div class="overflow-x-auto rounded-3xl border border-gray-200 dark:border-gray-800">
+        <table class="min-w-full text-left text-sm"><thead class="bg-gray-50 dark:bg-gray-950/50 text-xs uppercase tracking-[0.15em] text-gray-500 dark:text-gray-400"><tr><th class="px-4 py-3">Time</th><th class="px-4 py-3">Side</th><th class="px-4 py-3">Symbol</th><th class="px-4 py-3 text-right">Qty</th><th class="px-4 py-3 text-right">Fill</th><th class="px-4 py-3 text-right">Total</th><th class="px-4 py-3 text-center">Status</th></tr></thead><tbody id="tradesBody" class="divide-y divide-gray-100 dark:divide-gray-800"></tbody></table>
+      </div>
+    </section>
+    <section class="bg-white dark:bg-gray-900 rounded-xl shadow-md border border-gray-200 dark:border-gray-800 p-5 slide-in" style="animation-delay: 0.75s">
+      <div class="flex items-center justify-between mb-4"><h2 class="text-lg font-semibold">Session Controls</h2><button onclick="toggleSettings()" class="px-3 py-2 text-xs font-semibold rounded-full bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200 hover:bg-gray-200">Settings</button></div>
+      <div class="space-y-4 text-sm text-gray-500 dark:text-gray-400">
+        <button onclick="newDay()" class="w-full py-3 rounded-2xl bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100 font-semibold hover:bg-gray-200">New Market Day</button>
+        <button onclick="resetDay()" class="w-full py-3 rounded-2xl bg-white dark:bg-gray-950 border border-gray-200 dark:border-gray-800 text-gray-900 dark:text-gray-100 font-semibold hover:bg-gray-50">Restart Trading Day</button>
+        <button onclick="clearAllRecords()" class="w-full py-3 rounded-2xl bg-red-500 text-white font-semibold hover:bg-red-600">Reset All Records</button>
+      </div>
+    </section>
+  </div>
+</main>
+
+<div id="settingsModal" class="fixed inset-0 hidden bg-black/40 backdrop-blur-sm z-50">
+  <div class="absolute right-0 top-0 h-full w-full max-w-md bg-white dark:bg-gray-950 shadow-2xl p-6 overflow-y-auto">
+    <div class="flex items-center justify-between mb-6"><div><h2 class="text-lg font-semibold">Simulation Settings</h2><p class="text-xs text-gray-500">Adjust market and risk controls.</p></div><button onclick="toggleSettings()" class="text-gray-500 hover:text-gray-900 dark:hover:text-white"><i class="fas fa-times"></i></button></div>
+    <div class="space-y-4">
+      <div class="rounded-3xl bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 p-4">
+        <div class="flex items-center justify-between mb-3"><span class="text-sm font-medium">Market Running</span><button id="marketToggle" onclick="toggleMarket()" class="relative inline-flex h-6 w-11 items-center rounded-full bg-gray-200 dark:bg-gray-800 transition-colors"><span class="inline-block h-4 w-4 transform rounded-full bg-white transition-transform translate-x-1" id="marketToggleDot"></span></button></div>
+        <div class="flex items-center justify-between"><span class="text-sm font-medium">Events Enabled</span><button id="eventsToggle" onclick="toggleEvents()" class="relative inline-flex h-6 w-11 items-center rounded-full bg-blue-600 transition-colors"><span class="inline-block h-4 w-4 transform rounded-full bg-white transition-transform translate-x-6" id="eventsToggleDot"></span></button></div>
+      </div>
+      <div class="rounded-3xl bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 p-4">
+        <h3 class="text-sm font-semibold mb-3">Risk Settings</h3>
+        <div class="grid gap-4">
+          <label class="text-xs text-gray-500">Slippage (%)<input id="slippageSetting" type="number" min="0" max="5" step="0.01" value="0.15" class="w-full px-4 py-3 rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-950 text-sm text-gray-900 dark:text-gray-100"></label>
+          <label class="text-xs text-gray-500">Stop Loss (%)<input id="stopLossSetting" type="number" min="0" max="50" step="0.1" value="5" class="w-full px-4 py-3 rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-950 text-sm text-gray-900 dark:text-gray-100"></label>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="toast" class="fixed bottom-6 right-6 z-50 max-w-sm transform translate-y-8 opacity-0 transition-all duration-300">
+  <div class="rounded-3xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 shadow-xl p-4 flex items-start gap-3">
+    <div id="toastIcon" class="w-10 h-10 rounded-2xl bg-success text-white flex items-center justify-center"><i class="fas fa-check"></i></div>
+    <div class="flex-1"><p id="toastTitle" class="font-semibold">Success</p><p id="toastMessage" class="text-sm text-gray-500 dark:text-gray-400">Operation completed successfully.</p></div>
+    <button onclick="hideToast()" class="text-gray-500 hover:text-gray-900 dark:hover:text-white"><i class="fas fa-times"></i></button>
+  </div>
+</div>
+
+<script>
+class MarketEngine {
+  constructor() {
+    this.regime = 'bull';
+    this.sentiment = 'risk-on';
+    this.volatility = 0.02;
+    this.trendStrength = 0.001;
+    this.tickCount = 0;
+    this.events = [];
+    this.eventActive = false;
+    this.vix = 14.23;
+    this.sectorMomentum = { tech: 1.0, finance: 1.0, energy: 1.0, healthcare: 1.0 };
+  }
+
+  generatePriceMovement(basePrice, sector) {
+    const sectorMult = this.sectorMomentum[sector] || 1.0;
+    const regimeDrift = this.regime === 'bull' ? this.trendStrength : this.regime === 'bear' ? -this.trendStrength : 0;
+    const sentimentMult = this.sentiment === 'risk-on' ? 1.3 : this.sentiment === 'risk-off' ? 0.7 : 1.0;
+    const volCluster = Math.abs(Math.sin(this.tickCount * 0.1)) * 0.5 + 0.5;
+    const effectiveVol = this.volatility * volCluster * sentimentMult;
+    const randomComponent = (Math.random() - 0.5) * 2 * effectiveVol;
+    const driftComponent = regimeDrift * sectorMult;
+    let eventImpact = 0;
+    if (this.eventActive) eventImpact = (Math.random() - 0.3) * 0.05 * sectorMult;
+    const change = basePrice * (randomComponent + driftComponent + eventImpact);
+    this.tickCount++;
+    return change;
+  }
+
+  getBidAsk(spreadPct = 0.001) {
+    const spread = spreadPct * (1 + this.vix / 100);
+    return { spread };
+  }
+
+  calculateSlippage(quantity, avgVolume, spread) {
+    const sizeImpact = Math.min(quantity / avgVolume * 100, 0.02);
+    const volImpact = this.vix / 100 * 0.005;
+    return (sizeImpact + volImpact) * spread;
+  }
+
+  triggerEvent(eventType) {
+    const events = {
+      fed_hike: { title: 'Fed Announces Rate Hike', desc: 'Rates rise 25bps, volatility spikes.', impact: 'High', duration: 120, effect: () => { this.sentiment = 'risk-off'; this.volatility *= 2.5; this.sectorMomentum.finance = 1.3; this.sectorMomentum.tech = 0.7; } },
+      earnings_beat: { title: 'Tech Earnings Beat', desc: 'Tech sector rally after strong earnings.', impact: 'Medium', duration: 90, effect: () => { this.sentiment = 'risk-on'; this.sectorMomentum.tech = 1.4; this.trendStrength *= 1.5; } },
+      oil_spike: { title: 'Oil Price Surge', desc: 'Energy sector strength lifts markets.', impact: 'High', duration: 100, effect: () => { this.sectorMomentum.energy = 1.5; this.sectorMomentum.tech = 0.8; this.volatility *= 1.8; } },
+      market_crash: { title: 'Flash Crash', desc: 'Liquidity dries up as markets tumble.', impact: 'Critical', duration: 60, effect: () => { this.sentiment = 'risk-off'; this.volatility *= 4; this.regime = 'bear'; Object.keys(this.sectorMomentum).forEach(k => this.sectorMomentum[k] = 0.6); } },
+      vaccine_news: { title: 'Healthcare Breakthrough', desc: 'Positive news boosts healthcare.', impact: 'Medium', duration: 80, effect: () => { this.sectorMomentum.healthcare = 1.6; this.sentiment = 'risk-on'; this.trendStrength *= 1.3; } }
+    };
+    const event = events[eventType];
+    if (!event) return null;
+    event.effect();
+    this.eventActive = true;
+    this.events.push({ ...event, startTime: Date.now() });
+    setTimeout(() => this.normalizeAfterEvent(), event.duration * 1000);
+    return event;
+  }
+
+  normalizeAfterEvent() {
+    this.volatility = Math.max(0.02, this.volatility * 0.7);
+    this.trendStrength = 0.001;
+    this.sentiment = Math.random() > 0.5 ? 'risk-on' : 'neutral';
+    Object.keys(this.sectorMomentum).forEach(k => { this.sectorMomentum[k] = 1.0 + (this.sectorMomentum[k] - 1.0) * 0.5; });
+    this.eventActive = false;
+    hideEventBanner();
+  }
+
+  rotateRegime() {
+    const regimes = ['bull', 'bear', 'sideways'];
+    const weights = this.sentiment === 'risk-on' ? [0.5, 0.2, 0.3] : this.sentiment === 'risk-off' ? [0.2, 0.5, 0.3] : [0.33, 0.33, 0.34];
+    const rand = Math.random(); let cumsum = 0;
+    for (let i = 0; i < regimes.length; i++) { cumsum += weights[i]; if (rand <= cumsum) { this.regime = regimes[i]; break; } }
+    if (this.regime === 'bull') this.vix = 12 + Math.random() * 6;
+    else if (this.regime === 'bear') this.vix = 25 + Math.random() * 15;
+    else this.vix = 16 + Math.random() * 8;
+    updateMarketIndicators();
+  }
+}
+
+const engine = new MarketEngine();
+let currentOrderSide = 'buy';
+let currentOrderMode = 'market';
+let marketOpen = true;
+let autoRefresh = true;
+let eventsEnabled = true;
+let selectedStock = null;
+let chartPeriod = '1D';
+
+const portfolio = { availableFunds: 50000.00, holdings: {}, trades: [], activeOrders: [], dayStartValue: 50000.00, highWaterMark: 50000.00, peakValue: 50000.00 };
+
+const stocks = [
+  { symbol: 'AAPL', name: 'Apple Inc.', sector: 'tech', price: 178.35, change: 2.45, changePercent: 1.39, volume: 52300000, avgVolume: 45000000, beta: 1.2 },
+  { symbol: 'MSFT', name: 'Microsoft Corp.', sector: 'tech', price: 378.91, change: 5.23, changePercent: 1.40, volume: 28100000, avgVolume: 25000000, beta: 0.9 },
+  { symbol: 'GOOGL', name: 'Alphabet Inc.', sector: 'tech', price: 142.56, change: -1.23, changePercent: -0.85, volume: 21700000, avgVolume: 20000000, beta: 1.1 },
+  { symbol: 'AMZN', name: 'Amazon.com Inc.', sector: 'tech', price: 155.33, change: 3.12, changePercent: 2.05, volume: 41200000, avgVolume: 38000000, beta: 1.3 },
+  { symbol: 'TSLA', name: 'Tesla Inc.', sector: 'tech', price: 248.50, change: -8.75, changePercent: -3.40, volume: 98500000, avgVolume: 90000000, beta: 2.1 },
+  { symbol: 'META', name: 'Meta Platforms', sector: 'tech', price: 358.72, change: 12.34, changePercent: 3.56, volume: 19800000, avgVolume: 18000000, beta: 1.4 },
+  { symbol: 'NVDA', name: 'NVIDIA Corp.', sector: 'tech', price: 495.22, change: 15.67, changePercent: 3.27, volume: 45600000, avgVolume: 42000000, beta: 1.8 },
+  { symbol: 'JPM', name: 'JPMorgan Chase', sector: 'finance', price: 172.45, change: 1.89, changePercent: 1.11, volume: 12400000, avgVolume: 11000000, beta: 1.1 },
+  { symbol: 'BAC', name: 'Bank of America', sector: 'finance', price: 34.56, change: -0.45, changePercent: -1.29, volume: 38900000, avgVolume: 35000000, beta: 1.4 },
+  { symbol: 'XOM', name: 'Exxon Mobil', sector: 'energy', price: 118.23, change: 2.34, changePercent: 2.02, volume: 18700000, avgVolume: 16000000, beta: 0.8 },
+  { symbol: 'CVX', name: 'Chevron Corp.', sector: 'energy', price: 156.78, change: 1.67, changePercent: 1.08, volume: 9800000, avgVolume: 9000000, beta: 0.9 },
+  { symbol: 'JNJ', name: 'Johnson & Johnson', sector: 'healthcare', price: 158.90, change: -0.78, changePercent: -0.49, volume: 7600000, avgVolume: 7000000, beta: 0.6 },
+  { symbol: 'PFE', name: 'Pfizer Inc.', sector: 'healthcare', price: 33.45, change: 0.56, changePercent: 1.70, volume: 23400000, avgVolume: 21000000, beta: 0.7 },
+  { symbol: 'UNH', name: 'UnitedHealth Group', sector: 'healthcare', price: 524.30, change: 8.90, changePercent: 1.73, volume: 3400000, avgVolume: 3000000, beta: 0.8 }
+];
+
+stocks.forEach(stock => {
+  stock.openPrice = stock.price;
+  stock.high = stock.price;
+  stock.low = stock.price;
+  const spread = engine.getBidAsk().spread;
+  stock.bid = stock.price - spread / 2;
+  stock.ask = stock.price + spread / 2;
+});
+
+const priceHistory = Array.from({ length: 50 }, (_, i) => 50000 + (Math.random() - 0.45) * 1200 + i * 40);
+let marketChart = null;
+
+function init() {
+  if (localStorage.getItem('theme') === 'dark' || (!localStorage.getItem('theme') && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+    document.documentElement.classList.add('dark');
+  }
+  renderStockTable();
+  renderHoldings();
+  renderActiveOrders();
+  renderTradesTable();
+  initChart();
+  updatePortfolio();
+  updateTickerTape();
+  updateMarketIndicators();
+  setInterval(() => { if (autoRefresh && marketOpen) simulatePriceChanges(); }, 3000);
+  setInterval(() => { if (marketOpen) engine.rotateRegime(); }, 30000);
+  setInterval(() => { if (eventsEnabled && marketOpen && !engine.eventActive && Math.random() < 0.15) triggerRandomEvent(); }, 22000);
+  setInterval(updateEventTimer, 1000);
+}
+
+function renderStockTable() {
+  const tbody = document.getElementById('stockTableBody');
+  tbody.innerHTML = stocks.map(stock => {
+    const trend = stock.change >= 0 ? 'stock-up' : 'stock-down';
+    return `<tr class="hover:bg-gray-50 dark:hover:bg-gray-800/30 transition-colors cursor-pointer" onclick="selectStock('${stock.symbol}')"><td class="px-4 py-3 font-semibold mono">${stock.symbol}</td><td class="px-4 py-3 text-gray-500 dark:text-gray-400 text-xs">${stock.name}</td><td class="px-4 py-3 text-right mono">${stock.bid.toFixed(2)}</td><td class="px-4 py-3 text-right mono">${stock.ask.toFixed(2)}</td><td class="px-4 py-3 text-right mono font-semibold">${stock.price.toFixed(2)}</td><td class="px-4 py-3 text-right ${trend}">${stock.change >= 0 ? '▲' : '▼'} ${stock.changePercent.toFixed(2)}%</td><td class="px-4 py-3 text-right text-xs text-gray-500">${(stock.volume / 1000000).toFixed(1)}M</td><td class="px-4 py-3 text-right"><button onclick="event.stopPropagation(); selectStock('${stock.symbol}')" class="px-3 py-1 rounded-full bg-primary text-white text-xs">Trade</button></td></tr>`;
+  }).join('');
+}
+
+function selectStock(symbol) {
+  const stock = stocks.find(s => s.symbol === symbol);
+  if (!stock) return;
+  selectedStock = stock;
+  document.getElementById('orderSymbol').value = symbol;
+  calculateOrderPreview();
+}
+
+function renderHoldings() {
+  const container = document.getElementById('holdingsList');
+  const keys = Object.keys(portfolio.holdings);
+  if (!keys.length) { container.innerHTML = '<p class="text-xs text-gray-400 text-center py-5">No open positions</p>'; return; }
+  container.innerHTML = keys.map(symbol => {
+    const qty = portfolio.holdings[symbol];
+    const stock = stocks.find(s => s.symbol === symbol);
+    const marketValue = stock ? qty * stock.price : 0;
+    const unrealized = stock ? qty * (stock.price - (stock.openPrice || stock.price)) : 0;
+    const pct = stock ? (unrealized / (qty * stock.openPrice || 1)) * 100 : 0;
+    return `<div class="rounded-3xl bg-gray-50 dark:bg-gray-950 border border-gray-200 dark:border-gray-800 p-4"><div class="flex items-center justify-between mb-2"><span class="text-sm font-semibold">${symbol}</span><span class="text-xs text-gray-500">${qty} sh</span></div><div class="flex items-center justify-between text-sm"><span class="mono">$${marketValue.toFixed(2)}</span><span class="${unrealized >= 0 ? 'stock-up' : 'stock-down'}">${unrealized >= 0 ? '+' : ''}$${unrealized.toFixed(2)} (${pct.toFixed(1)}%)</span></div></div>`;
+  }).join('');
+}
+
+function renderActiveOrders() {
+  const tbody = document.getElementById('activeOrdersBody');
+  document.getElementById('activeOrdersCount').textContent = `${portfolio.activeOrders.length} orders`;
+  if (!portfolio.activeOrders.length) {
+    tbody.innerHTML = '<tr><td colspan="6" class="px-4 py-6 text-center text-xs text-gray-400">No active orders</td></tr>';
+    return;
+  }
+  tbody.innerHTML = portfolio.activeOrders.map(order => `<tr class="hover:bg-gray-50 dark:hover:bg-gray-800/30 transition-colors"><td class="px-3 py-3 text-xs text-gray-500">${order.time}</td><td class="px-3 py-3 text-xs ${order.side === 'buy' ? 'stock-up' : 'stock-down'}">${order.side.toUpperCase()}</td><td class="px-3 py-3 font-semibold mono">${order.symbol}</td><td class="px-3 py-3 text-right mono">${order.qty}</td><td class="px-3 py-3 text-right mono">${order.price ? '$' + order.price.toFixed(2) : 'MKT'}</td><td class="px-3 py-3 text-xs text-gray-500">${order.type}</td></tr>`).join('');
+}
+
+function renderTradesTable() {
+  const tbody = document.getElementById('tradesBody');
+  if (!portfolio.trades.length) {
+    tbody.innerHTML = '<tr><td colspan="8" class="px-4 py-6 text-center text-xs text-gray-400">No trades executed yet</td></tr>';
+    return;
+  }
+  tbody.innerHTML = portfolio.trades.map(trade => `<tr class="hover:bg-gray-50 dark:hover:bg-gray-800/30 transition-colors"><td class="px-4 py-3 text-xs text-gray-500">${trade.time}</td><td class="px-4 py-3 text-xs ${trade.side === 'buy' ? 'stock-up' : 'stock-down'}">${trade.side.toUpperCase()}</td><td class="px-4 py-3 font-semibold mono">${trade.symbol}</td><td class="px-4 py-3 text-right mono">${trade.qty}</td><td class="px-4 py-3 text-right mono">$${trade.fillPrice.toFixed(2)}</td><td class="px-4 py-3 text-right mono">$${trade.total.toFixed(2)}</td><td class="px-4 py-3 text-right ${trade.pl >= 0 ? 'stock-up' : 'stock-down'}">${trade.pl >= 0 ? '+' : ''}$${trade.pl.toFixed(2)}</td><td class="px-4 py-3 text-center"><span class="px-2 py-0.5 rounded-full text-xs ${trade.status === 'FILLED' ? 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300' : 'bg-yellow-100 dark:bg-yellow-900/30 text-warning'}">${trade.status || 'FILLED'}</span></td></tr>`).join('');
+}
+
+function calculateOrderPreview() {
+  const symbol = document.getElementById('orderSymbol').value.toUpperCase();
+  const qty = parseInt(document.getElementById('orderQty').value, 10) || 0;
+  const priceInput = parseFloat(document.getElementById('orderPrice').value);
+  const preview = document.getElementById('orderPreview');
+  const warning = document.getElementById('exposureWarning');
+  const stock = stocks.find(s => s.symbol === symbol);
+  if (!stock || qty <= 0) { preview.textContent = 'Enter order details to preview fill.'; warning.textContent = ''; return; }
+  const price = currentOrderMode === 'market' ? (currentOrderSide === 'buy' ? stock.ask : stock.bid) : priceInput || stock.price;
+  const total = qty * price;
+  const exposure = (portfolio.availableFunds + getMarketValue()) ? total / (portfolio.availableFunds + getMarketValue()) * 100 : 0;
+  preview.textContent = `${currentOrderSide.toUpperCase()} ${qty} ${symbol} @ $${price.toFixed(2)} | Total $${total.toFixed(2)} (${exposure.toFixed(1)}% portfolio)`;
+  warning.textContent = exposure > 15 ? 'High exposure - consider reducing size.' : '';
+}
+
+function setOrderType(type) {
+  currentOrderSide = type;
+  document.getElementById('buyBtn').className = type === 'buy' ? 'flex-1 py-2 text-sm font-medium rounded-xl bg-white dark:bg-gray-700 text-success shadow-sm' : 'flex-1 py-2 text-sm font-medium rounded-xl text-gray-500 dark:text-gray-400';
+  document.getElementById('sellBtn').className = type === 'sell' ? 'flex-1 py-2 text-sm font-medium rounded-xl bg-white dark:bg-gray-700 text-danger shadow-sm' : 'flex-1 py-2 text-sm font-medium rounded-xl text-gray-500 dark:text-gray-400';
+  calculateOrderPreview();
+}
+
+function setOrderMode(mode) {
+  currentOrderMode = mode;
+  document.getElementById('marketBtn').className = mode === 'market' ? 'flex-1 py-2 text-xs font-medium rounded-xl bg-white dark:bg-gray-700 text-primary shadow-sm' : 'flex-1 py-2 text-xs font-medium rounded-xl text-gray-500 dark:text-gray-400';
+  document.getElementById('limitBtn').className = mode === 'limit' ? 'flex-1 py-2 text-xs font-medium rounded-xl bg-white dark:bg-gray-700 text-primary shadow-sm' : 'flex-1 py-2 text-xs font-medium rounded-xl text-gray-500 dark:text-gray-400';
+  document.getElementById('stopBtn').className = mode === 'stop' ? 'flex-1 py-2 text-xs font-medium rounded-xl bg-white dark:bg-gray-700 text-primary shadow-sm' : 'flex-1 py-2 text-xs font-medium rounded-xl text-gray-500 dark:text-gray-400';
+  document.getElementById('limitPriceContainer').classList.toggle('hidden', mode === 'market');
+  calculateOrderPreview();
+}
+
+function submitOrder() {
+  const symbol = document.getElementById('orderSymbol').value.toUpperCase();
+  const qty = parseInt(document.getElementById('orderQty').value, 10);
+  const price = parseFloat(document.getElementById('orderPrice').value) || null;
+  const stock = stocks.find(s => s.symbol === symbol);
+  if (!stock || !qty || qty <= 0) { showToast('Error', 'Enter valid symbol and quantity.', 'error'); return; }
+  if (currentOrderMode !== 'market' && (!price || price <= 0)) { showToast('Error', 'Enter a valid limit/stop price.', 'error'); return; }
+  const order = { symbol, side: currentOrderSide, qty, price: currentOrderMode === 'market' ? null : price, type: currentOrderMode, time: new Date().toLocaleTimeString() };
+  if (currentOrderMode === 'market') executeTrade(order);
+  else { portfolio.activeOrders.push(order); renderActiveOrders(); showToast('Order Created', `${currentOrderSide.toUpperCase()} ${qty} ${symbol} (${currentOrderMode})`, 'success'); }
+  document.getElementById('orderQty').value = '';
+  document.getElementById('orderPrice').value = '';
+  calculateOrderPreview();
+}
+
+function executeTrade(order) {
+  const stock = stocks.find(s => s.symbol === order.symbol);
+  if (!stock) return;
+  const fillBase = order.price || (order.side === 'buy' ? stock.ask : stock.bid);
+  const slippage = engine.calculateSlippage(order.qty, stock.avgVolume, engine.getBidAsk().spread);
+  const fillPrice = fillBase * (order.side === 'buy' ? 1 + slippage : 1 - slippage);
+  const total = fillPrice * order.qty;
+  if (order.side === 'buy' && total > portfolio.availableFunds) { showToast('Error', 'Insufficient funds.', 'error'); return; }
+  if (order.side === 'sell' && (portfolio.holdings[order.symbol] || 0) < order.qty) { showToast('Error', 'Insufficient shares.', 'error'); return; }
+  if (order.side === 'buy') { portfolio.availableFunds -= total; portfolio.holdings[order.symbol] = (portfolio.holdings[order.symbol] || 0) + order.qty; }
+  else { portfolio.availableFunds += total; portfolio.holdings[order.symbol] -= order.qty; if (portfolio.holdings[order.symbol] <= 0) delete portfolio.holdings[order.symbol]; }
+  const pl = order.side === 'buy' ? 0 : (stock.price - fillPrice) * order.qty;
+  portfolio.trades.unshift({ time: new Date().toLocaleTimeString(), side: order.side, symbol: order.symbol, qty: order.qty, fillPrice, total, pl, type: order.type, mode: order.type, status: 'FILLED' });
+  portfolio.peakValue = Math.max(portfolio.peakValue, portfolio.availableFunds + getMarketValue());
+  updatePortfolio();
+  showToast('Trade Executed', `${order.side.toUpperCase()} ${order.qty} ${order.symbol} @ $${fillPrice.toFixed(2)}`, 'success');
+}
+
+function getMarketValue() {
+  return Object.entries(portfolio.holdings).reduce((sum, [symbol, qty]) => {
+    const stock = stocks.find(s => s.symbol === symbol);
+    return stock ? sum + qty * stock.price : sum;
+  }, 0);
+}
+
+function checkOrders() {
+  const toRemove = [];
+  portfolio.activeOrders.forEach((order, index) => {
+    const stock = stocks.find(s => s.symbol === order.symbol);
+    if (!stock) return;
+    let shouldFill = false;
+    if (order.type === 'limit') { if (order.side === 'buy' && stock.ask <= order.price) shouldFill = true; if (order.side === 'sell' && stock.bid >= order.price) shouldFill = true; }
+    else if (order.type === 'stop') { if (order.side === 'buy' && stock.price >= order.price) shouldFill = true; if (order.side === 'sell' && stock.price <= order.price) shouldFill = true; }
+    if (shouldFill) { executeTrade(order); toRemove.push(index); }
+  });
+  for (let i = toRemove.length - 1; i >= 0; i--) portfolio.activeOrders.splice(toRemove[i], 1);
+  if (toRemove.length) renderActiveOrders();
+}
+
+function simulatePriceChanges() {
+  stocks.forEach(stock => {
+    const delta = engine.generatePriceMovement(stock.price, stock.sector);
+    stock.price = Math.max(1, stock.price + delta);
+    stock.change = stock.price - stock.openPrice;
+    stock.changePercent = stock.openPrice ? stock.change / stock.openPrice * 100 : 0;
+    stock.volume += Math.floor(Math.random() * 50000);
+    const spread = engine.getBidAsk().spread;
+    stock.bid = stock.price - spread / 2;
+    stock.ask = stock.price + spread / 2;
+    stock.high = Math.max(stock.high, stock.price);
+    stock.low = Math.min(stock.low, stock.price);
+  });
+  portfolio.peakValue = Math.max(portfolio.peakValue, portfolio.availableFunds + getMarketValue());
+  priceHistory.push(portfolio.availableFunds + getMarketValue());
+  if (priceHistory.length > 60) priceHistory.shift();
+  renderStockTable();
+  checkOrders();
+  updatePortfolio();
+  updateChart();
+  updateTickerTape();
+}
+
+function triggerRandomEvent() {
+  const eventTypes = ['fed_hike', 'earnings_beat', 'oil_spike', 'market_crash', 'vaccine_news'];
+  const weights = [0.2, 0.25, 0.2, 0.1, 0.25];
+  let total = 0; const roll = Math.random(); let chosen = eventTypes[0];
+  for (let i = 0; i < eventTypes.length; i++) { total += weights[i]; if (roll <= total) { chosen = eventTypes[i]; break; } }
+  const event = engine.triggerEvent(chosen);
+  if (event) { showEventBanner(event); showToast('Market Event', event.title, 'warning'); }
+}
+
+function showEventBanner(event) {
+  const banner = document.getElementById('eventBanner');
+  document.getElementById('eventTitle').textContent = event.title;
+  document.getElementById('eventDesc').textContent = event.desc;
+  document.getElementById('eventImpact').textContent = `${event.impact} Impact`;
+  document.getElementById('eventTimer').textContent = `Expires in ${event.duration}s`;
+  banner.classList.remove('hidden');
+}
+
+function hideEventBanner() { document.getElementById('eventBanner').classList.add('hidden'); }
+
+function updateEventTimer() {
+  const banner = document.getElementById('eventBanner');
+  if (banner.classList.contains('hidden') || !engine.events.length) return;
+  const lastEvent = engine.events[engine.events.length - 1];
+  const remaining = Math.max(0, lastEvent.duration - Math.floor((Date.now() - lastEvent.startTime) / 1000));
+  document.getElementById('eventTimer').textContent = `Expires in ${remaining}s`;
+}
+
+function updatePortfolio() {
+  let marketValue = 0; let portfolioBeta = 0; let maxWeight = 0;
+  Object.entries(portfolio.holdings).forEach(([symbol, qty]) => {
+    const stock = stocks.find(s => s.symbol === symbol);
+    if (!stock) return;
+    const positionValue = qty * stock.price;
+    marketValue += positionValue;
+    portfolioBeta += (positionValue / (portfolio.availableFunds + marketValue || 1)) * stock.beta;
+    maxWeight = Math.max(maxWeight, positionValue);
+  });
+  const totalAssets = portfolio.availableFunds + marketValue;
+  const dailyPL = totalAssets - portfolio.dayStartValue;
+  const dailyPLPct = totalAssets ? (dailyPL / portfolio.dayStartValue) * 100 : 0;
+  const drawdown = portfolio.peakValue > 0 ? ((portfolio.peakValue - totalAssets) / portfolio.peakValue) * 100 : 0;
+  const portfolioHeat = totalAssets ? Math.min(100, marketValue / totalAssets * 100) : 0;
+  const concentration = marketValue ? Math.min(100, maxWeight / marketValue * 100) : 0;
+  document.getElementById('availableFunds').textContent = `$${portfolio.availableFunds.toFixed(2)}`;
+  document.getElementById('totalAssets').textContent = `$${totalAssets.toFixed(2)}`;
+  document.getElementById('marketValue').textContent = `$${marketValue.toFixed(2)}`;
+  document.getElementById('maxExposure').textContent = `$${Math.round(totalAssets * 0.15).toLocaleString()}`;
+  const plEl = document.getElementById('dailyPL'); plEl.textContent = `${dailyPL >= 0 ? '+' : ''}$${dailyPL.toFixed(2)}`;
+  plEl.className = `text-2xl font-bold mono ${dailyPL >= 0 ? 'stock-up' : 'stock-down'}`;
+  document.getElementById('dailyPLPct').textContent = `${dailyPLPct >= 0 ? '+' : ''}${dailyPLPct.toFixed(2)}% today`;
+  const cashPct = totalAssets ? portfolio.availableFunds / totalAssets * 100 : 0;
+  document.getElementById('cashPct').textContent = `${cashPct.toFixed(0)}%`;
+  document.getElementById('cashBar').style.width = `${cashPct}%`;
+  document.getElementById('portfolioHeat').textContent = `${Math.round(portfolioHeat)}%`;
+  document.getElementById('heatBar').style.width = `${portfolioHeat}%`;
+  document.getElementById('concentration').textContent = `${Math.round(concentration)}%`;
+  document.getElementById('concBar').style.width = `${concentration}%`;
+  document.getElementById('drawdown').textContent = `-${drawdown.toFixed(1)}%`;
+  document.getElementById('ddBar').style.width = `${Math.min(drawdown, 100)}%`;
+  document.getElementById('betaExposure').textContent = portfolioBeta.toFixed(2);
+  document.getElementById('betaBar').style.width = `${Math.min(portfolioBeta / 2 * 100, 100)}%`;
+  const riskEl = document.getElementById('riskLevel');
+  let label = 'Low Risk'; let labelClass = 'text-success';
+  if (portfolioHeat > 80 || concentration > 50 || drawdown > 10) { label = 'High Risk'; labelClass = 'text-danger'; }
+  else if (portfolioHeat > 50 || concentration > 30 || drawdown > 5) { label = 'Medium Risk'; labelClass = 'text-warning'; }
+  riskEl.textContent = label; riskEl.className = `text-xs px-3 py-1 rounded-full ${labelClass}`;
+  document.getElementById('dayOpen').textContent = `$${portfolio.dayStartValue.toFixed(0)}`;
+  document.getElementById('dayHigh').textContent = `$${portfolio.peakValue.toFixed(0)}`;
+  const recentLow = Math.min(...priceHistory.slice(-20));
+  document.getElementById('dayLow').textContent = `$${Math.round(recentLow)}`;
+  document.getElementById('prevClose').textContent = `$${Math.round(portfolio.dayStartValue * 0.98)}`;
+  renderHoldings(); renderActiveOrders(); renderTradesTable();
+}
+
+function updateMarketIndicators() {
+  document.getElementById('vixValue').textContent = engine.vix.toFixed(2);
+  const regimeText = engine.regime === 'bull' ? 'Bull Phase' : engine.regime === 'bear' ? 'Bear Phase' : 'Sideways';
+  const regimeClass = engine.regime === 'bull' ? 'text-success' : engine.regime === 'bear' ? 'text-danger' : 'text-warning';
+  const sentimentText = engine.sentiment === 'risk-on' ? 'Risk-On' : engine.sentiment === 'risk-off' ? 'Risk-Off' : 'Neutral';
+  const sentimentClass = engine.sentiment === 'risk-on' ? 'text-success' : engine.sentiment === 'risk-off' ? 'text-danger' : 'text-gray-400';
+  document.getElementById('marketRegime').textContent = regimeText; document.getElementById('marketRegime').className = `font-medium ${regimeClass}`;
+  document.getElementById('marketSentiment').textContent = sentimentText; document.getElementById('marketSentiment').className = `font-medium ${sentimentClass}`;
+  document.getElementById('chartRegime').textContent = engine.regime === 'bull' ? 'Trending Up' : engine.regime === 'bear' ? 'Trending Down' : 'Range Bound';
+}
+
+function refreshQuotes() { simulatePriceChanges(); showToast('Refreshed', 'Market quotes updated.', 'success'); }
+
+function initChart() {
+  const ctx = document.getElementById('marketChart').getContext('2d');
+  const gradient = ctx.createLinearGradient(0, 0, 0, 350);
+  gradient.addColorStop(0, 'rgba(59,130,246,0.22)'); gradient.addColorStop(1, 'rgba(59,130,246,0)');
+  marketChart = new Chart(ctx, { type: 'line', data: { labels: priceHistory.map(() => ''), datasets: [{ data: priceHistory, borderColor: '#3b82f6', backgroundColor: gradient, fill: true, tension: 0.3, pointRadius: 0 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => '$' + ctx.parsed.y.toFixed(0) } } }, scales: { x: { display: false }, y: { grid: { color: 'rgba(148,163,184,0.15)' }, ticks: { color: '#94a3b8', callback: value => '$' + value.toLocaleString() } } }, interaction: { intersect: false, mode: 'index' } } });
+}
+
+function updateChart() {
+  if (!marketChart) return;
+  marketChart.data.datasets[0].data = priceHistory;
+  marketChart.update('none');
+}
+
+function setChartPeriod(period) {
+  chartPeriod = period;
+  document.querySelectorAll('.chart-period-btn').forEach(btn => {
+    if (btn.dataset.period === period) btn.className = 'chart-period-btn px-3 py-1 text-xs rounded-md bg-primary text-white';
+    else btn.className = 'chart-period-btn px-3 py-1 text-xs rounded-md bg-gray-200 dark:bg-gray-800 text-gray-700 dark:text-gray-300';
+  });
+}
+
+function toggleTheme() {
+  document.documentElement.classList.toggle('dark');
+  localStorage.setItem('theme', document.documentElement.classList.contains('dark') ? 'dark' : 'light');
+}
+
+function toggleSettings() {
+  const modal = document.getElementById('settingsModal');
+  modal.classList.toggle('hidden');
+}
+
+function toggleMarket() {
+  marketOpen = !marketOpen;
+  const toggle = document.getElementById('marketToggle');
+  const dot = document.getElementById('marketToggleDot');
+  toggle.classList.toggle('bg-blue-600', marketOpen);
+  toggle.classList.toggle('bg-gray-200', !marketOpen);
+  dot.classList.toggle('translate-x-6', marketOpen);
+  dot.classList.toggle('translate-x-1', !marketOpen);
+  document.getElementById('marketStatusText').textContent = marketOpen ? 'Market Open' : 'Market Paused';
+  showToast('Market ' + (marketOpen ? 'Resumed' : 'Paused'), marketOpen ? 'Simulation resumed.' : 'Simulation paused.', 'info');
+}
+
+function toggleEvents() {
+  eventsEnabled = !eventsEnabled;
+  const toggle = document.getElementById('eventsToggle');
+  const dot = document.getElementById('eventsToggleDot');
+  toggle.classList.toggle('bg-blue-600', eventsEnabled);
+  toggle.classList.toggle('bg-gray-200', !eventsEnabled);
+  dot.classList.toggle('translate-x-6', eventsEnabled);
+  dot.classList.toggle('translate-x-1', !eventsEnabled);
+  showToast('Events ' + (eventsEnabled ? 'Enabled' : 'Disabled'), 'Event engine ' + (eventsEnabled ? 'on' : 'off') + '.', 'info');
+}
+
+function clearTrades() {
+  portfolio.trades = [];
+  renderTradesTable();
+  updatePortfolio();
+  updateChart();
+  showToast('Cleared', 'Trade history cleared', 'success');
+}
+
+function clearAllRecords() {
+  portfolio.availableFunds = 50000.00;
+  portfolio.holdings = {};
+  portfolio.trades = [];
+  portfolio.activeOrders = [];
+  portfolio.dayStartValue = 50000.00;
+  portfolio.highWaterMark = 50000.00;
+  portfolio.peakValue = 50000.00;
+  priceHistory.length = 0;
+  for (let i = 0; i < 50; i++) priceHistory.push(50000 + (Math.random() - 0.45) * 1000);
+  stocks.forEach(stock => {
+    stock.price = stock.openPrice;
+    stock.change = 0;
+    stock.changePercent = 0;
+    stock.volume = stock.avgVolume;
+    const spread = engine.getBidAsk().spread;
+    stock.bid = stock.price - spread / 2;
+    stock.ask = stock.price + spread / 2;
+    stock.high = stock.price;
+    stock.low = stock.price;
+  });
+  updatePortfolio(); renderStockTable(); renderHoldings(); renderActiveOrders(); renderTradesTable(); updateChart(); showToast('Reset', 'All records cleared', 'success');
+}
+
+function resetDay() {
+  portfolio.dayStartValue = portfolio.availableFunds + getMarketValue();
+  portfolio.peakValue = portfolio.dayStartValue;
+  updatePortfolio();
+  showToast('Reset', 'Trading day restarted', 'success');
+}
+
+function newDay() {
+  stocks.forEach(stock => { const drift = stock.price * (0.92 + Math.random() * 0.16); stock.openPrice = drift; stock.price = drift; stock.change = 0; stock.changePercent = 0; stock.volume = stock.avgVolume; const spread = engine.getBidAsk().spread; stock.bid = stock.price - spread / 2; stock.ask = stock.price + spread / 2; stock.high = stock.price; stock.low = stock.price; });
+  resetDay(); showToast('New Day', 'Market session restarted.', 'success');
+}
+
+function exportTrades() {
+  if (!portfolio.trades.length) { showToast('Error', 'No trades to export.', 'error'); return; }
+  const csv = ['Time,Side,Symbol,Quantity,FillPrice,Total,Mode,Status', ...portfolio.trades.map(t => `${t.time},${t.side},${t.symbol},${t.qty},${t.fillPrice.toFixed(2)},${t.total.toFixed(2)},${t.mode || t.type || 'market'},${t.status || 'FILLED'}`)].join('\n');
+  const blob = new Blob([csv], { type: 'text/csv' }); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = `trades_${new Date().toISOString().slice(0,10)}.csv`; a.click(); URL.revokeObjectURL(url); showToast('Exported', 'Trade log downloaded', 'success');
+}
+
+function showToast(title, message, type) {
+  const toast = document.getElementById('toast'); const icon = document.getElementById('toastIcon'); const titleEl = document.getElementById('toastTitle'); const msgEl = document.getElementById('toastMessage');
+  titleEl.textContent = title; msgEl.textContent = message;
+  if (type === 'error') { icon.className = 'w-10 h-10 rounded-2xl bg-danger text-white flex items-center justify-center'; icon.innerHTML = '<i class="fas fa-exclamation-circle"></i>'; }
+  else if (type === 'warning') { icon.className = 'w-10 h-10 rounded-2xl bg-warning text-white flex items-center justify-center'; icon.innerHTML = '<i class="fas fa-bolt"></i>'; }
+  else { icon.className = 'w-10 h-10 rounded-2xl bg-success text-white flex items-center justify-center'; icon.innerHTML = '<i class="fas fa-check"></i>'; }
+  toast.classList.add('toast-anim'); toast.classList.remove('opacity-0', 'translate-y-8'); setTimeout(() => hideToast(), 3200);
+}
+
+function hideToast() { const toast = document.getElementById('toast'); toast.classList.add('opacity-0', 'translate-y-8'); }
+
+function updateTickerTape() {
+  const tape = document.getElementById('tickerTape'); const items = stocks.slice(0, 8).map(s => `<span class="ticker-item text-xs"><strong>${s.symbol}</strong> <span class="${s.change >= 0 ? 'stock-up' : 'stock-down'}">${s.price.toFixed(2)} ${s.change >= 0 ? '▲' : '▼'}${Math.abs(s.changePercent).toFixed(2)}%</span></span>`).join(''); tape.innerHTML = items + items;
+}
+
+document.addEventListener('click', e => {
+  const modal = document.getElementById('settingsModal'); if (!modal.contains(e.target) && !modal.classList.contains('hidden') && !e.target.closest('button')) {
+    if (!e.target.closest('#settingsModal')) modal.classList.add('hidden'); }
+});
+
+window.addEventListener('DOMContentLoaded', init);
+</script>
+</body>
+</html>

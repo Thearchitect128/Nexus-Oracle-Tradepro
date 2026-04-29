@@ -1,0 +1,24 @@
+{
+  "name": "live-event-demand-surface",
+  "version": "0.1.0",
+  "description": "Live Event Demand Surface v0.1 - Analyzes concert ticket demand based on artist, venue, and date",
+  "type": "module",
+  "main": "dist/index.js",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/index.js",
+    "test": "vitest run",
+    "test:watch": "vitest watch",
+    "lint": "tsc --noEmit"
+  },
+  "dependencies": {
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "typescript": "^5.6.3",
+    "tsx": "^4.19.2",
+    "vitest": "^2.1.8"
+  }
+}

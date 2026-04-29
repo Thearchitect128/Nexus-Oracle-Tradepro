@@ -1,0 +1,46 @@
+{
+  "accounts": [
+    {
+      "id": "acc1",
+      "planLimit": 2,
+      "devices": ["dev1", "dev2", "dev3", "dev4", "dev5", "dev6"]
+    },
+    {
+      "id": "acc2",
+      "planLimit": 1,
+      "devices": ["dev7"]
+    }
+  ],
+  "sessions": [
+    {
+      "accountId": "acc1",
+      "geo": "NY",
+      "deviceId": "dev1",
+      "startTime": 1000,
+      "duration": 3600
+    },
+    {
+      "accountId": "acc1",
+      "geo": "LA",
+      "deviceId": "dev2",
+      "startTime": 5000,
+      "duration": 1800
+    },
+    {
+      "accountId": "acc1",
+      "geo": "EU",
+      "deviceId": "dev3",
+      "startTime": 7000,
+      "duration": 1200
+    },
+    {
+      "accountId": "acc2",
+      "geo": "NY",
+      "deviceId": "dev7",
+      "startTime": 2000,
+      "duration": 2400
+    }
+  ],
+  "arpu": 8,
+  "conversionRate": 0.3
+}

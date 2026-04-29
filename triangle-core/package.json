@@ -1,0 +1,24 @@
+{
+  "name": "triangle-core",
+  "version": "1.0.0",
+  "description": "Deterministic triangle geometry generator with verification",
+  "type": "module",
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "main": "src/generate.js",
+  "scripts": {
+    "generate": "node src/generate.js",
+    "verify": "node verify.js",
+    "lock": "node lock.js",
+    "build": "npm run generate && npm run verify",
+    "ci": "npm run lock && npm run build"
+  },
+  "devDependencies": {
+    "ts-node": "^10.9.1",
+    "typescript": "^5.0.0"
+  },
+  "dependencies": {
+    "json-stable-stringify": "^1.3.0"
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "geoWindowHours": 6,
+  "maxDevices": 5,
+  "sessionJumpSeconds": 60,
+  "geoSplitThreshold": 0.1,
+  "deviceDensityThreshold": 0.1,
+  "concurrencyThreshold": 1,
+  "sessionRelayThreshold": 0.1
+}

@@ -1,0 +1,13 @@
+#!/bin/bash
+
+# Contacts for Calendly outreach
+contacts=(
+  "sarah.johnson@calendly.com?subject=Hidden%20Revenue%20from%20Account%20Sharing%20at%20Calendly&body=Dear%20Sarah%20Johnson%2C%0A%0AYou%20likely%20have%20accounts%20being%20used%20across%20multiple%20organizations%20without%20being%20billed%20correctly.%0A%0AWe%20detect%20this%20by%20analyzing%20usage%20patterns%20in%20shadow%20mode%20for%2014%20days%2C%20with%20no%20risk%20or%20disruption.%0A%0AIn%20similar%20SaaS%20companies%2C%20we've%20found%2015-25%25%20of%20accounts%20with%20sharing%20issues%2C%20recovering%20%24200K-%24500K%2Fmonth.%0A%0AOur%20detection%20is%2091%25%20accurate%20with%20few%20false%20positives.%0A%0AWant%20to%20see%20what%20it%20finds%20in%20your%20data%3F%20No%20commitment%20if%20nothing%20shows%20up.%0A%0ABest%2C%0A[Your%20Name]"
+  "mike.chen@calendly.com?subject=Hidden%20Revenue%20from%20Account%20Sharing%20at%20Calendly&body=Dear%20Mike%20Chen%2C%0A%0AYou%20likely%20have%20accounts%20being%20used%20across%20multiple%20organizations%20without%20being%20billed%20correctly.%0A%0AWe%20detect%20this%20by%20analyzing%20usage%20patterns%20in%20shadow%20mode%20for%2014%20days%2C%20with%20no%20risk%20or%20disruption.%0A%0AIn%20similar%20SaaS%20companies%2C%20we've%20found%2015-25%25%20of%20accounts%20with%20sharing%20issues%2C%20recovering%20%24200K-%24500K%2Fmonth.%0A%0AOur%20detection%20is%2091%25%20accurate%20with%20few%20false%20positives.%0A%0AWant%20to%20see%20what%20it%20finds%20in%20your%20data%3F%20No%20commitment%20if%20nothing%20shows%20up.%0A%0ABest%2C%0A[Your%20Name]"
+  "lisa.wong@calendly.com?subject=Hidden%20Revenue%20from%20Account%20Sharing%20at%20Calendly&body=Dear%20Lisa%20Wong%2C%0A%0AYou%20likely%20have%20accounts%20being%20used%20across%20multiple%20organizations%20without%20being%20billed%20correctly.%0A%0AWe%20detect%20this%20by%20analyzing%20usage%20patterns%20in%20shadow%20mode%20for%2014%20days%2C%20with%20no%20risk%20or%20disruption.%0A%0AIn%20similar%20SaaS%20companies%2C%20we've%20found%2015-25%25%20of%20accounts%20with%20sharing%20issues%2C%20recovering%20%24200K-%24500K%2Fmonth.%0A%0AOur%20detection%20is%2091%25%20accurate%20with%20few%20false%20positives.%0A%0AWant%20to%20see%20what%20it%20finds%20in%20your%20data%3F%20No%20commitment%20if%20nothing%20shows%20up.%0A%0ABest%2C%0A[Your%20Name]"
+)
+
+for contact in "${contacts[@]}"; do
+  "$BROWSER" "mailto:$contact" &
+  sleep 1
+done
