@@ -1,0 +1,109 @@
+\documentclass[conference]{IEEEtran}
+\IEEEoverridecommandlockouts
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{microtype}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,positioning,shapes.geometric,fit}
+
+\newtheorem{definition}{Definition}
+\newtheorem{assumption}{Assumption}
+\newtheorem{proposition}{Proposition}
+\newtheorem{theorem}{Theorem}
+\theoremstyle{remark}
+\newtheorem{remark}{Remark}
+
+\title{The Nexus Triple Product Fusion Model:\\
+A Nonlinear Dynamical, Control, and Verification-Oriented Specification}
+
+\author{
+\IEEEauthorblockN{Mohammad Saad Younus}
+\IEEEauthorblockA{}
+}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+We formalize the Nexus Fusion Model as a nonlinear controlled dynamical
+system with a triple-product threshold, local nonlinear stability,
+optimal-control necessary conditions, forward invariance and reachability
+of the fusion set, a bridge activation law coupling the fusion functional
+to a lattice path geometry, and a verification-oriented finite-state
+abstraction. Sufficient conditions for global envelope bounds in discrete
+verification models are established.
+\end{abstract}
+
+%% ============================================================
+\section{Introduction}
+%% ============================================================
+
+The Nexus Fusion Model is a three-state nonlinear control system with
+threshold-defined operating modes. Its core performance functional is
+the triple product
+\[
+\Phi(x)=EN\tau,
+\]
+where $E$ is lattice energy, $N$ is active node density, and $\tau$ is
+the stability window. Fusion Mode is entered when
+$\Phi(x)\ge C_{\mathrm{Nexus}}$ for a critical threshold
+$C_{\mathrm{Nexus}}>0$.
+
+This paper provides a self-contained specification of the model with
+five analytical components: nonlinear dynamics and well-posedness,
+stability analysis via linearization and Lyapunov theory, Pontryagin
+optimal control, forward invariance and reachability of the fusion set,
+a bridge activation law coupling the fusion functional to a discrete
+lattice geometry, and a finite-state abstraction with soundness guarantees.
+
+%% ============================================================
+\section{Model}
+%% ============================================================
+
+% Paste state space, fusion functional, controlled dynamics,
+% well-posedness, and equilibrium sections from the article version.
+
+%% ============================================================
+\section{Stability}
+%% ============================================================
+
+% Paste linearized stability and Lyapunov sections here.
+
+%% ============================================================
+\section{Control}
+%% ============================================================
+
+% Paste Pontryagin optimal control section here.
+
+%% ============================================================
+\section{Forward Invariance and Reachability}
+%% ============================================================
+
+% Paste forward invariance theorem and reachability theorem here.
+
+%% ============================================================
+\section{Bridge Activation Law}
+%% ============================================================
+
+% Paste Bridge [D] section here (condensed for conference format).
+
+%% ============================================================
+\section{Hybrid Abstraction}
+%% ============================================================
+
+% Paste finite-state abstraction and soundness theorem here.
+
+%% ============================================================
+\section{Conclusion}
+%% ============================================================
+
+The resulting framework unifies nonlinear dynamics, control, lattice
+path geometry, and finite-state verification into a single specification.
+The global envelope law $M_{\min}=(1+C_\phi)\,\phi_{\mathrm{peak}}
++C_r\,r_{\mathrm{peak}}$ provides a parametric design tool for
+verification models.
+
+\bibliographystyle{IEEEtran}
+% \bibliography{references}
+
+\end{document}

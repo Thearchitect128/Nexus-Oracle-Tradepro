@@ -1,0 +1,29 @@
+name: Verify deterministic analysis
+
+on:
+  push:
+    paths:
+      - "nexus-core/**"
+      - ".github/workflows/verify.yml"
+  pull_request:
+    paths:
+      - "nexus-core/**"
+      - ".github/workflows/verify.yml"
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: nexus-core
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: npm ci
+      - run: bash run.sh
+      - run: python3 verify.py --analysis analysis.json --sha analysis.json.sha256

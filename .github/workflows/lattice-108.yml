@@ -1,0 +1,52 @@
+name: lattice-108
+
+on:
+  pull_request:
+    paths:
+      - "allocator-service/**"
+      - ".github/workflows/lattice-108.yml"
+  push:
+    branches: [main]
+    paths:
+      - "allocator-service/**"
+      - ".github/workflows/lattice-108.yml"
+
+jobs:
+  generate-vectors:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: allocator-service
+    outputs:
+      vectors: ${{ steps.vectors.outputs.vectors }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: allocator-service/package.json
+      - run: npm install
+      - id: vectors
+        run: |
+          echo "vectors=$(npm run -s lattice:vectors -- --json)" >> "$GITHUB_OUTPUT"
+
+  lattice:
+    needs: generate-vectors
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        vector: ${{ fromJson(needs.generate-vectors.outputs.vectors) }}
+    defaults:
+      run:
+        working-directory: allocator-service
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: allocator-service/package.json
+      - run: npm install
+      - run: npm run -s lattice:check -- '${{ toJson(matrix.vector) }}'

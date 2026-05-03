@@ -1,0 +1,22 @@
+{
+  "timestamp": "2026-04-24T06:19:26.992Z",
+  "system": {
+    "state": "HOLD",
+    "context": {
+      "output": 1,
+      "drift": 0
+    }
+  },
+  "data": {
+    "principal": 167.89,
+    "rate": 0.05,
+    "years": 10,
+    "final": 273.45,
+    "gain": 105.56
+  },
+  "verification": {
+    "hash": "936153c14ab65603f105c086547165d86479219cd62cedafd771be425f0f24ee",
+    "signature": "6iv7o7p5J4d5VMYrTfBxCO+ze0KBgIrrEN0LbuwcO6iE9UOQ5FR8FMMVEVpTN3NPYP21jxavFyG2mXzPC/hYJQ==",
+    "publicKey": "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEOqD7aG2DxdgMRLyweqbkBE5Vr7X1CG8G06gjMZS5+v1DpCtTP2pV5kn4YR9z3YOgQUzcesvAFIXsfLWWzkcxNw=="
+  }
+}

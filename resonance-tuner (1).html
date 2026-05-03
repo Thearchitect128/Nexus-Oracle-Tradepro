@@ -1,0 +1,896 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Resonance Tuner</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg1: #0d1424;
+      --bg2: #04070e;
+      --panel: rgba(14, 20, 34, 0.7);
+      --line: rgba(100, 180, 255, 0.15);
+      --text: #d0e4ff;
+      --muted: #5a6a8a;
+      --accent: #7bc5ff;
+      --accent2: #c084fc;
+      --danger: #ff6b6b;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      background: radial-gradient(ellipse at 50% 0%, #0d1424 0%, #04070e 100%);
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-family: 'SF Pro Text', 'Segoe UI', system-ui, -apple-system, monospace;
+      padding: 1.5rem;
+      overflow-x: hidden;
+      color: var(--text);
+    }
+
+    .companion-card {
+      max-width: 1100px;
+      width: 100%;
+      background: rgba(14, 20, 34, 0.7);
+      backdrop-filter: blur(16px);
+      border-radius: 2.5rem;
+      padding: 1.5rem;
+      box-shadow:
+        0 30px 60px rgba(0, 0, 0, 0.5),
+        inset 0 1px 0 rgba(255, 255, 255, 0.06),
+        0 0 0 1px rgba(100, 200, 255, 0.15);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .companion-card::before {
+      content: '';
+      position: absolute;
+      top: -50%;
+      left: -50%;
+      width: 200%;
+      height: 200%;
+      background: conic-gradient(
+        from 0deg,
+        transparent 0deg,
+        rgba(80, 180, 255, 0.03) 60deg,
+        transparent 120deg,
+        rgba(180, 100, 255, 0.03) 180deg,
+        transparent 240deg,
+        rgba(80, 180, 255, 0.03) 300deg,
+        transparent 360deg
+      );
+      animation: slow-rotate 20s linear infinite;
+      pointer-events: none;
+    }
+
+    @keyframes slow-rotate {
+      to { transform: rotate(360deg); }
+    }
+
+    .header {
+      text-align: center;
+      margin-bottom: 1.5rem;
+      position: relative;
+      z-index: 1;
+    }
+
+    .header h1 {
+      font-size: 1.4rem;
+      font-weight: 700;
+      letter-spacing: 3px;
+      background: linear-gradient(135deg, #7bc5ff, #c084fc);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin: 0 0 0.3rem 0;
+    }
+
+    .header p {
+      font-size: 0.7rem;
+      color: #5a6a8a;
+      letter-spacing: 1px;
+      margin: 0;
+    }
+
+    .touch-zone {
+      position: relative;
+      width: 100%;
+      height: 280px;
+      background:
+        radial-gradient(circle at 30% 30%, rgba(80, 160, 255, 0.08) 0%, transparent 50%),
+        linear-gradient(180deg, rgba(20, 28, 48, 0.8) 0%, rgba(10, 16, 28, 0.9) 100%);
+      border-radius: 2rem;
+      border: 1px solid rgba(100, 180, 255, 0.2);
+      overflow: hidden;
+      cursor: crosshair;
+      margin-bottom: 1.2rem;
+      touch-action: none;
+      z-index: 1;
+    }
+
+    .touch-zone canvas {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+    }
+
+    .touch-hint {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      pointer-events: none;
+      color: rgba(120, 180, 255, 0.3);
+      font-size: 0.8rem;
+      letter-spacing: 2px;
+      transition: opacity 0.5s;
+      text-align: center;
+      line-height: 1.7;
+    }
+
+    .touch-hint.hidden {
+      opacity: 0;
+    }
+
+    .viz-strip {
+      height: 60px;
+      background: rgba(8, 14, 26, 0.8);
+      border-radius: 1.2rem;
+      border: 1px solid rgba(100, 180, 255, 0.15);
+      margin-bottom: 1.2rem;
+      overflow: hidden;
+      position: relative;
+      z-index: 1;
+    }
+
+    .viz-strip canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    .controls-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1rem;
+      margin-bottom: 1.2rem;
+      position: relative;
+      z-index: 1;
+    }
+
+    .control-block {
+      background: rgba(20, 28, 44, 0.6);
+      backdrop-filter: blur(8px);
+      border-radius: 1.5rem;
+      padding: 1rem 1.2rem;
+      border: 1px solid rgba(100, 180, 255, 0.15);
+      transition: 0.2s;
+    }
+
+    .control-block:hover {
+      border-color: rgba(100, 180, 255, 0.3);
+    }
+
+    .control-block label {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.65rem;
+      font-weight: 600;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: #8ab4e8;
+      margin-bottom: 0.6rem;
+    }
+
+    .control-block .value-tag {
+      color: #eef5ff;
+      background: rgba(0, 0, 0, 0.4);
+      padding: 0.15rem 0.5rem;
+      border-radius: 2rem;
+      font-family: monospace;
+      font-size: 0.65rem;
+      border: 1px solid rgba(100, 180, 255, 0.2);
+      min-width: 4.75rem;
+      text-align: right;
+    }
+
+    input[type="range"] {
+      width: 100%;
+      -webkit-appearance: none;
+      appearance: none;
+      background: transparent;
+      height: 20px;
+      cursor: pointer;
+    }
+
+    input[type="range"]::-webkit-slider-track {
+      height: 4px;
+      background: linear-gradient(90deg, #1e2a3a, #2a4c7a);
+      border-radius: 10px;
+    }
+
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: #7bc5ff;
+      border: 2px solid #0a0f1e;
+      box-shadow: 0 0 8px rgba(123, 197, 255, 0.5);
+      margin-top: -6px;
+      cursor: pointer;
+      transition: transform 0.1s;
+    }
+
+    input[type="range"]::-webkit-slider-thumb:hover {
+      transform: scale(1.2);
+    }
+
+    .presets-row {
+      display: flex;
+      gap: 0.6rem;
+      flex-wrap: wrap;
+      margin-bottom: 1.2rem;
+      position: relative;
+      z-index: 1;
+    }
+
+    .preset-chip {
+      background: rgba(30, 45, 70, 0.6);
+      border: 1px solid rgba(100, 180, 255, 0.25);
+      color: #a8c8f0;
+      padding: 0.4rem 1rem;
+      border-radius: 2rem;
+      font-size: 0.7rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      letter-spacing: 0.5px;
+      user-select: none;
+    }
+
+    .preset-chip:hover {
+      background: rgba(60, 100, 160, 0.4);
+      border-color: #7bc5ff;
+      transform: translateY(-1px);
+    }
+
+    .preset-chip.active {
+      background: linear-gradient(135deg, rgba(80, 160, 255, 0.3), rgba(160, 100, 255, 0.3));
+      border-color: #7bc5ff;
+      color: #fff;
+      box-shadow: 0 2px 12px rgba(80, 160, 255, 0.2);
+    }
+
+    .action-bar {
+      display: flex;
+      gap: 0.8rem;
+      flex-wrap: wrap;
+      align-items: center;
+      position: relative;
+      z-index: 1;
+    }
+
+    .action-btn {
+      background: rgba(30, 45, 70, 0.7);
+      backdrop-filter: blur(8px);
+      border: 1px solid rgba(100, 180, 255, 0.35);
+      padding: 0.7rem 1.1rem;
+      border-radius: 2rem;
+      font-weight: 600;
+      font-size: 0.75rem;
+      color: #d0e4ff;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-family: inherit;
+      letter-spacing: 0.5px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .action-btn:hover {
+      background: rgba(50, 80, 130, 0.5);
+      border-color: #9acdff;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 16px rgba(0, 120, 255, 0.2);
+    }
+
+    .action-btn:active {
+      transform: scale(0.97);
+    }
+
+    .action-btn.primary {
+      background: linear-gradient(135deg, rgba(60, 130, 220, 0.4), rgba(140, 80, 220, 0.3));
+      border-color: rgba(120, 180, 255, 0.5);
+    }
+
+    .action-btn.recording {
+      animation: pulse-rec 1.5s ease-in-out infinite;
+      border-color: #ff6b6b;
+      color: #ffb3b3;
+    }
+
+    @keyframes pulse-rec {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(255, 107, 107, 0.4); }
+      50% { box-shadow: 0 0 0 10px rgba(255, 107, 107, 0); }
+    }
+
+    .status-line {
+      margin-top: 1rem;
+      padding: 0.6rem;
+      border-radius: 1.5rem;
+      background: rgba(0, 0, 0, 0.3);
+      text-align: center;
+      font-size: 0.7rem;
+      color: #5a6a8a;
+      letter-spacing: 0.5px;
+      font-family: monospace;
+      position: relative;
+      z-index: 1;
+    }
+
+    .status-line span {
+      color: #7bc5ff;
+    }
+
+    .mini-note {
+      margin-top: 0.75rem;
+      text-align: center;
+      color: #6e85ad;
+      font-size: 0.68rem;
+      letter-spacing: 0.35px;
+      position: relative;
+      z-index: 1;
+    }
+
+    @media (max-width: 640px) {
+      .companion-card { padding: 1rem; border-radius: 1.5rem; }
+      .touch-zone { height: 200px; }
+      .controls-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="companion-card" id="captureRoot">
+    <div class="header">
+      <h1>RESONANCE TUNER</h1>
+      <p>Audio-reactive companion for Lumina Wave · touch, presets, sync, capture</p>
+    </div>
+
+    <div class="touch-zone" id="touchZone">
+      <canvas id="touchCanvas"></canvas>
+      <div class="touch-hint" id="touchHint">
+        <div>TOUCH / DRAG TO SCULPT</div>
+        <div>FREQUENCY ↔ HUE SHIFT</div>
+      </div>
+    </div>
+
+    <div class="viz-strip">
+      <canvas id="vizCanvas"></canvas>
+    </div>
+
+    <div class="controls-grid" id="controlsGrid"></div>
+
+    <div class="presets-row" id="presetRow"></div>
+
+    <div class="action-bar">
+      <button class="action-btn primary" id="linkBtn">🔗 LINK TO LUMINA</button>
+      <button class="action-btn" id="audioBtn">🎤 START AUDIO INPUT</button>
+      <button class="action-btn" id="saveBtn">💾 SAVE CUSTOM PRESET</button>
+      <button class="action-btn" id="captureBtn">📸 CAPTURE PNG</button>
+      <button class="action-btn" id="resetBtn">↺ RESET</button>
+    </div>
+
+    <div class="status-line" id="statusLine">status=<span>standalone</span> · link=<span>idle</span> · audio=<span>off</span></div>
+    <div class="mini-note">Sync uses <code>localStorage</code> and a custom <code>lumina-wave-sync</code> event. Custom presets persist in-browser.</div>
+  </div>
+
+  <script>
+    const STORAGE_KEY = 'lumina-wave-params';
+    const PRESET_KEY = 'resonance-tuner-custom-presets';
+    const CHANNEL_KEY = 'lumina-wave-sync';
+
+    const clamp = (n, min, max) => Math.max(min, Math.min(max, n));
+    const round = (n, digits = 2) => Number(n.toFixed(digits));
+    const lerp = (a, b, t) => a + (b - a) * t;
+
+    const defaults = {
+      frequency: 1.5,
+      hueShift: 0,
+      speed: 1.1,
+      complexity: 0.55,
+      intensity: 0.7,
+      bloom: 0.45,
+      bass: 0,
+      treble: 0,
+      linked: false,
+      activePreset: 'Balanced Pulse'
+    };
+
+    const state = { ...defaults };
+
+    const basePresets = [
+      { name: 'Balanced Pulse', frequency: 1.5, hueShift: 0, speed: 1.1, complexity: 0.55, intensity: 0.7, bloom: 0.45 },
+      { name: 'Deep Tide', frequency: 0.8, hueShift: -68, speed: 0.8, complexity: 0.35, intensity: 0.62, bloom: 0.6 },
+      { name: 'Solar Drift', frequency: 2.9, hueShift: 95, speed: 1.6, complexity: 0.78, intensity: 0.82, bloom: 0.38 },
+      { name: 'Violet Storm', frequency: 3.4, hueShift: 156, speed: 1.95, complexity: 0.92, intensity: 0.88, bloom: 0.5 },
+      { name: 'Glass Orbit', frequency: 1.1, hueShift: -132, speed: 0.95, complexity: 0.48, intensity: 0.58, bloom: 0.74 }
+    ];
+
+    const controlDefs = [
+      { key: 'frequency', label: 'Frequency', min: 0.5, max: 4.0, step: 0.01, format: v => `${round(v, 2)}x` },
+      { key: 'hueShift', label: 'Hue Shift', min: -180, max: 180, step: 1, format: v => `${Math.round(v)}°` },
+      { key: 'speed', label: 'Speed', min: 0.2, max: 3.0, step: 0.01, format: v => `${round(v, 2)}` },
+      { key: 'complexity', label: 'Complexity', min: 0, max: 1, step: 0.01, format: v => round(v, 2) },
+      { key: 'intensity', label: 'Intensity', min: 0, max: 1, step: 0.01, format: v => round(v, 2) },
+      { key: 'bloom', label: 'Bloom', min: 0, max: 1, step: 0.01, format: v => round(v, 2) }
+    ];
+
+    const statusEl = document.getElementById('statusLine');
+    const controlsGrid = document.getElementById('controlsGrid');
+    const presetRow = document.getElementById('presetRow');
+    const touchZone = document.getElementById('touchZone');
+    const touchCanvas = document.getElementById('touchCanvas');
+    const touchHint = document.getElementById('touchHint');
+    const vizCanvas = document.getElementById('vizCanvas');
+    const linkBtn = document.getElementById('linkBtn');
+    const audioBtn = document.getElementById('audioBtn');
+    const saveBtn = document.getElementById('saveBtn');
+    const captureBtn = document.getElementById('captureBtn');
+    const resetBtn = document.getElementById('resetBtn');
+
+    const touchCtx = touchCanvas.getContext('2d');
+    const vizCtx = vizCanvas.getContext('2d');
+
+    let pointer = { x: 0.5, y: 0.5, active: false, lastMove: 0 };
+    let particles = [];
+    let audioCtx;
+    let analyser;
+    let micStream;
+    let dataArray;
+    let animationId;
+    let lastBroadcast = 0;
+
+    function loadCustomPresets() {
+      try {
+        return JSON.parse(localStorage.getItem(PRESET_KEY) || '[]');
+      } catch {
+        return [];
+      }
+    }
+
+    function getAllPresets() {
+      return [...basePresets, ...loadCustomPresets()];
+    }
+
+    function setStatus() {
+      statusEl.innerHTML = `status=<span>${state.linked ? 'linked-ready' : 'standalone'}</span> · link=<span>${state.linked ? 'broadcasting' : 'idle'}</span> · audio=<span>${analyser ? 'live' : 'off'}</span>`;
+    }
+
+    function serializeParams() {
+      return {
+        frequency: round(state.frequency, 4),
+        hueShift: Math.round(state.hueShift),
+        speed: round(state.speed, 4),
+        complexity: round(state.complexity, 4),
+        intensity: round(state.intensity, 4),
+        bloom: round(state.bloom, 4),
+        bass: round(state.bass, 4),
+        treble: round(state.treble, 4),
+        source: 'resonance-tuner',
+        preset: state.activePreset,
+        timestamp: new Date().toISOString()
+      };
+    }
+
+    function broadcastParams(force = false) {
+      const now = performance.now();
+      if (!force && now - lastBroadcast < 36) return;
+      lastBroadcast = now;
+      const payload = serializeParams();
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+      localStorage.setItem(CHANNEL_KEY, JSON.stringify({ ...payload, nonce: crypto.randomUUID() }));
+      window.dispatchEvent(new CustomEvent('lumina-wave-sync', { detail: payload }));
+      setStatus();
+    }
+
+    function syncIfLinked(force = false) {
+      if (state.linked) broadcastParams(force);
+    }
+
+    function createControls() {
+      controlsGrid.innerHTML = '';
+      for (const def of controlDefs) {
+        const block = document.createElement('div');
+        block.className = 'control-block';
+        block.innerHTML = `
+          <label>
+            <span>${def.label}</span>
+            <span class="value-tag" data-tag="${def.key}"></span>
+          </label>
+          <input type="range" min="${def.min}" max="${def.max}" step="${def.step}" value="${state[def.key]}" data-key="${def.key}">
+        `;
+        const input = block.querySelector('input');
+        input.addEventListener('input', e => {
+          state[def.key] = Number(e.target.value);
+          state.activePreset = 'Custom';
+          updateUI();
+          syncIfLinked();
+        });
+        controlsGrid.appendChild(block);
+      }
+    }
+
+    function renderPresets() {
+      presetRow.innerHTML = '';
+      for (const preset of getAllPresets()) {
+        const chip = document.createElement('button');
+        chip.className = 'preset-chip' + (state.activePreset === preset.name ? ' active' : '');
+        chip.textContent = preset.name;
+        chip.addEventListener('click', () => applyPreset(preset));
+        presetRow.appendChild(chip);
+      }
+    }
+
+    function applyPreset(preset) {
+      Object.assign(state, preset, { activePreset: preset.name });
+      updateUI();
+      syncIfLinked(true);
+    }
+
+    function updateUI() {
+      for (const def of controlDefs) {
+        const input = document.querySelector(`input[data-key="${def.key}"]`);
+        const tag = document.querySelector(`[data-tag="${def.key}"]`);
+        if (input) input.value = state[def.key];
+        if (tag) tag.textContent = def.format(state[def.key]);
+      }
+      renderPresets();
+      setStatus();
+      paintTouchBackdrop();
+    }
+
+    function resizeCanvas(canvas, ctx) {
+      const ratio = window.devicePixelRatio || 1;
+      const rect = canvas.getBoundingClientRect();
+      canvas.width = Math.floor(rect.width * ratio);
+      canvas.height = Math.floor(rect.height * ratio);
+      ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+    }
+
+    function paintTouchBackdrop() {
+      const rect = touchCanvas.getBoundingClientRect();
+      const hue = ((state.hueShift % 360) + 360) % 360;
+      const cx = pointer.x * rect.width;
+      const cy = pointer.y * rect.height;
+      const g = touchCtx.createRadialGradient(cx, cy, 0, cx, cy, Math.max(rect.width, rect.height) * 0.55);
+      g.addColorStop(0, `hsla(${hue}, 95%, 68%, 0.18)`);
+      g.addColorStop(0.35, `hsla(${(hue + 60) % 360}, 95%, 62%, 0.08)`);
+      g.addColorStop(1, 'rgba(0,0,0,0)');
+      touchCtx.clearRect(0, 0, rect.width, rect.height);
+      touchCtx.fillStyle = g;
+      touchCtx.fillRect(0, 0, rect.width, rect.height);
+
+      const gridAlpha = 0.06 + state.complexity * 0.08;
+      touchCtx.strokeStyle = `rgba(123, 197, 255, ${gridAlpha})`;
+      touchCtx.lineWidth = 1;
+      for (let x = 0; x < rect.width; x += 28) {
+        touchCtx.beginPath();
+        touchCtx.moveTo(x, 0);
+        touchCtx.lineTo(x, rect.height);
+        touchCtx.stroke();
+      }
+      for (let y = 0; y < rect.height; y += 28) {
+        touchCtx.beginPath();
+        touchCtx.moveTo(0, y);
+        touchCtx.lineTo(rect.width, y);
+        touchCtx.stroke();
+      }
+    }
+
+    function pushParticle(x, y) {
+      const hue = ((state.hueShift % 360) + 360) % 360;
+      particles.push({
+        x, y,
+        life: 1,
+        size: 10 + state.intensity * 22,
+        hue,
+        vx: (Math.random() - 0.5) * (1 + state.complexity * 3),
+        vy: (Math.random() - 0.5) * (1 + state.complexity * 3)
+      });
+      if (particles.length > 110) particles = particles.slice(-110);
+    }
+
+    function pointerToState(clientX, clientY) {
+      const rect = touchZone.getBoundingClientRect();
+      const x = clamp((clientX - rect.left) / rect.width, 0, 1);
+      const y = clamp((clientY - rect.top) / rect.height, 0, 1);
+      pointer = { x, y, active: true, lastMove: performance.now() };
+      state.frequency = round(lerp(0.5, 4.0, x), 2);
+      state.hueShift = Math.round(lerp(180, -180, y));
+      state.activePreset = 'Custom';
+      touchHint.classList.add('hidden');
+      pushParticle(x * rect.width, y * rect.height);
+      updateUI();
+      syncIfLinked();
+    }
+
+    touchZone.addEventListener('pointerdown', e => {
+      touchZone.setPointerCapture(e.pointerId);
+      pointerToState(e.clientX, e.clientY);
+    });
+    touchZone.addEventListener('pointermove', e => {
+      if (e.buttons || pointer.active) pointerToState(e.clientX, e.clientY);
+    });
+    touchZone.addEventListener('pointerup', () => { pointer.active = false; });
+    touchZone.addEventListener('pointerleave', () => { pointer.active = false; });
+
+    async function startAudio() {
+      if (analyser) return stopAudio();
+      try {
+        micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const source = audioCtx.createMediaStreamSource(micStream);
+        analyser = audioCtx.createAnalyser();
+        analyser.fftSize = 256;
+        source.connect(analyser);
+        dataArray = new Uint8Array(analyser.frequencyBinCount);
+        audioBtn.textContent = '■ STOP AUDIO INPUT';
+        audioBtn.classList.add('recording');
+        setStatus();
+      } catch (err) {
+        console.error(err);
+        statusEl.innerHTML = 'status=<span>mic denied</span> · link=<span>' + (state.linked ? 'broadcasting' : 'idle') + '</span> · audio=<span>off</span>';
+      }
+    }
+
+    function stopAudio() {
+      if (micStream) micStream.getTracks().forEach(track => track.stop());
+      if (audioCtx) audioCtx.close();
+      micStream = null;
+      audioCtx = null;
+      analyser = null;
+      dataArray = null;
+      state.bass = 0;
+      state.treble = 0;
+      audioBtn.textContent = '🎤 START AUDIO INPUT';
+      audioBtn.classList.remove('recording');
+      setStatus();
+    }
+
+    function readAudio() {
+      if (!analyser || !dataArray) return;
+      analyser.getByteFrequencyData(dataArray);
+      const len = dataArray.length;
+      const bassEnd = Math.floor(len * 0.18);
+      const trebleStart = Math.floor(len * 0.62);
+      let bass = 0;
+      let treble = 0;
+      for (let i = 0; i < bassEnd; i++) bass += dataArray[i];
+      for (let i = trebleStart; i < len; i++) treble += dataArray[i];
+      bass = bass / Math.max(1, bassEnd) / 255;
+      treble = treble / Math.max(1, len - trebleStart) / 255;
+      state.bass = bass;
+      state.treble = treble;
+
+      const audioSpeed = clamp(defaults.speed + bass * 1.35, 0.2, 3);
+      const audioComplexity = clamp(defaults.complexity + treble * 0.95, 0, 1);
+      state.speed = round(lerp(state.speed, audioSpeed, 0.08), 3);
+      state.complexity = round(lerp(state.complexity, audioComplexity, 0.08), 3);
+      syncIfLinked();
+    }
+
+    function drawViz() {
+      const rect = vizCanvas.getBoundingClientRect();
+      vizCtx.clearRect(0, 0, rect.width, rect.height);
+      const bars = dataArray ? dataArray.length : 48;
+      const gap = 2;
+      const barWidth = rect.width / bars;
+      const hueBase = ((state.hueShift % 360) + 360) % 360;
+
+      for (let i = 0; i < bars; i++) {
+        const amp = dataArray ? dataArray[i] / 255 : (0.12 + 0.1 * Math.sin(performance.now() * 0.002 + i * 0.4));
+        const h = amp * rect.height;
+        vizCtx.fillStyle = `hsla(${(hueBase + i * 2.4) % 360}, 95%, ${55 + amp * 20}%, ${0.4 + amp * 0.5})`;
+        vizCtx.fillRect(i * barWidth, rect.height - h, Math.max(1, barWidth - gap), h);
+      }
+
+      const lineY = rect.height * (1 - state.intensity * 0.9);
+      vizCtx.strokeStyle = 'rgba(220, 235, 255, 0.28)';
+      vizCtx.beginPath();
+      vizCtx.moveTo(0, lineY);
+      vizCtx.lineTo(rect.width, lineY);
+      vizCtx.stroke();
+    }
+
+    function drawTouchParticles(dt) {
+      const rect = touchCanvas.getBoundingClientRect();
+      paintTouchBackdrop();
+      const pulse = 14 + Math.sin(performance.now() * 0.003 * state.speed * state.frequency) * 8;
+      const px = pointer.x * rect.width;
+      const py = pointer.y * rect.height;
+      const hue = ((state.hueShift % 360) + 360) % 360;
+
+      touchCtx.beginPath();
+      touchCtx.arc(px, py, Math.max(8, pulse), 0, Math.PI * 2);
+      touchCtx.fillStyle = `hsla(${hue}, 100%, 74%, 0.18)`;
+      touchCtx.fill();
+      touchCtx.lineWidth = 1.4;
+      touchCtx.strokeStyle = `hsla(${(hue + 40) % 360}, 100%, 70%, 0.5)`;
+      touchCtx.stroke();
+
+      particles = particles.filter(p => p.life > 0.03);
+      for (const p of particles) {
+        p.life -= dt * (0.4 + state.speed * 0.2);
+        p.x += p.vx * state.frequency * 0.6;
+        p.y += p.vy * state.frequency * 0.6;
+        touchCtx.beginPath();
+        touchCtx.arc(p.x, p.y, Math.max(1, p.size * p.life), 0, Math.PI * 2);
+        touchCtx.fillStyle = `hsla(${(p.hue + (1 - p.life) * 90) % 360}, 100%, 72%, ${0.4 * p.life})`;
+        touchCtx.fill();
+      }
+    }
+
+    function animationLoop() {
+      readAudio();
+      drawViz();
+      drawTouchParticles(1 / 60);
+      animationId = requestAnimationFrame(animationLoop);
+    }
+
+    linkBtn.addEventListener('click', () => {
+      state.linked = !state.linked;
+      linkBtn.textContent = state.linked ? '🔗 LINKED TO LUMINA' : '🔗 LINK TO LUMINA';
+      linkBtn.classList.toggle('primary', state.linked);
+      if (state.linked) broadcastParams(true);
+      setStatus();
+    });
+
+    audioBtn.addEventListener('click', startAudio);
+
+    saveBtn.addEventListener('click', () => {
+      const name = prompt('Name this preset:', `Custom ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`);
+      if (!name) return;
+      const presets = loadCustomPresets();
+      const preset = {
+        name: name.trim(),
+        frequency: state.frequency,
+        hueShift: state.hueShift,
+        speed: state.speed,
+        complexity: state.complexity,
+        intensity: state.intensity,
+        bloom: state.bloom
+      };
+      const next = [...presets.filter(p => p.name !== preset.name), preset].slice(-20);
+      localStorage.setItem(PRESET_KEY, JSON.stringify(next));
+      state.activePreset = preset.name;
+      renderPresets();
+    });
+
+    captureBtn.addEventListener('click', () => {
+      const width = 1400;
+      const height = 920;
+      const canvas = document.createElement('canvas');
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
+
+      const grad = ctx.createRadialGradient(width * 0.5, 0, 80, width * 0.5, 0, height);
+      grad.addColorStop(0, '#0d1424');
+      grad.addColorStop(1, '#04070e');
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, width, height);
+
+      const panelGrad = ctx.createLinearGradient(120, 80, width - 120, height - 80);
+      panelGrad.addColorStop(0, 'rgba(14,20,34,0.94)');
+      panelGrad.addColorStop(1, 'rgba(22,28,46,0.94)');
+      roundRect(ctx, 90, 70, width - 180, height - 140, 36, true, false, panelGrad);
+
+      ctx.save();
+      ctx.globalAlpha = 0.24;
+      const rect = touchCanvas.getBoundingClientRect();
+      ctx.drawImage(touchCanvas, 120, 160, width - 240, 320);
+      ctx.restore();
+
+      ctx.drawImage(vizCanvas, 120, 510, width - 240, 80);
+
+      ctx.font = '700 34px system-ui';
+      const titleGrad = ctx.createLinearGradient(120, 0, 360, 0);
+      titleGrad.addColorStop(0, '#7bc5ff');
+      titleGrad.addColorStop(1, '#c084fc');
+      ctx.fillStyle = titleGrad;
+      ctx.fillText('RESONANCE TUNER SNAPSHOT', 120, 126);
+
+      ctx.fillStyle = '#6e85ad';
+      ctx.font = '16px ui-monospace, Menlo, monospace';
+      ctx.fillText('Companion state capture with visible parameter metadata', 120, 148);
+
+      ctx.fillStyle = '#d0e4ff';
+      ctx.font = '16px ui-monospace, Menlo, monospace';
+      const metadata = serializeParams();
+      const lines = [
+        `preset: ${metadata.preset}`,
+        `frequency: ${metadata.frequency}x`,
+        `hueShift: ${metadata.hueShift}°`,
+        `speed: ${metadata.speed}`,
+        `complexity: ${metadata.complexity}`,
+        `intensity: ${metadata.intensity}`,
+        `bloom: ${metadata.bloom}`,
+        `bass: ${metadata.bass}`,
+        `treble: ${metadata.treble}`,
+        `linked: ${state.linked}`,
+        `timestamp: ${metadata.timestamp}`
+      ];
+      let y = 650;
+      for (const line of lines) {
+        ctx.fillText(line, 120, y);
+        y += 26;
+      }
+
+      const a = document.createElement('a');
+      const stamp = new Date().toISOString().replace(/[:.]/g, '-');
+      a.href = canvas.toDataURL('image/png');
+      a.download = `resonance-tuner-${stamp}.png`;
+      a.click();
+    });
+
+    resetBtn.addEventListener('click', () => {
+      Object.assign(state, defaults);
+      pointer = { x: 0.5, y: 0.5, active: false, lastMove: 0 };
+      particles = [];
+      touchHint.classList.remove('hidden');
+      if (state.linked) broadcastParams(true);
+      updateUI();
+    });
+
+    window.addEventListener('storage', e => {
+      if (e.key === STORAGE_KEY && e.newValue) {
+        try {
+          const incoming = JSON.parse(e.newValue);
+          if (incoming.source === 'lumina-wave') {
+            Object.assign(state, incoming);
+            updateUI();
+          }
+        } catch {}
+      }
+      if (e.key === PRESET_KEY) renderPresets();
+    });
+
+    window.addEventListener('resize', () => {
+      resizeCanvas(touchCanvas, touchCtx);
+      resizeCanvas(vizCanvas, vizCtx);
+      updateUI();
+    });
+
+    function roundRect(ctx, x, y, w, h, r, fill, stroke, fillStyle) {
+      ctx.beginPath();
+      ctx.moveTo(x + r, y);
+      ctx.arcTo(x + w, y, x + w, y + h, r);
+      ctx.arcTo(x + w, y + h, x, y + h, r);
+      ctx.arcTo(x, y + h, x, y, r);
+      ctx.arcTo(x, y, x + w, y, r);
+      ctx.closePath();
+      if (fill) {
+        ctx.fillStyle = fillStyle || ctx.fillStyle;
+        ctx.fill();
+      }
+      if (stroke) ctx.stroke();
+    }
+
+    createControls();
+    resizeCanvas(touchCanvas, touchCtx);
+    resizeCanvas(vizCanvas, vizCtx);
+    updateUI();
+    applyPreset(basePresets[0]);
+    animationLoop();
+  </script>
+</body>
+</html>

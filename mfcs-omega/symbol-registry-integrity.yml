@@ -1,0 +1,40 @@
+name: symbol-registry-integrity
+
+on:
+  push:
+    paths:
+      - "src/lib/symbols/**"
+      - "gen/symbols.py"
+      - "gen/symbols/**"
+      - "artifacts/symbols.manifest.json"
+      - "scripts/generate_symbols_manifest.py"
+      - "scripts/verify_symbols_manifest.py"
+      - ".github/workflows/symbol-registry-integrity.yml"
+  pull_request:
+    paths:
+      - "src/lib/symbols/**"
+      - "gen/symbols.py"
+      - "gen/symbols/**"
+      - "artifacts/symbols.manifest.json"
+      - "scripts/generate_symbols_manifest.py"
+      - "scripts/verify_symbols_manifest.py"
+      - ".github/workflows/symbol-registry-integrity.yml"
+
+jobs:
+  verify-symbols:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Verify manifest hashes
+        run: python scripts/verify_symbols_manifest.py
+
+      - name: Regenerate manifest and ensure no drift
+        run: |
+          cp artifacts/symbols.manifest.json /tmp/symbols.manifest.before.json
+          python scripts/generate_symbols_manifest.py
+          diff -u /tmp/symbols.manifest.before.json artifacts/symbols.manifest.json

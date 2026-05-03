@@ -1,0 +1,20 @@
+Here's the complete 671.6 Hz audio test signal suite with full analysis:
+Generated Files
+File	Description	RMS Level
+671_6Hz_clean.wav	Pure sine, 5.0s	-5.0 dBFS
+671_6Hz_sweep.wav	100→1000 Hz chirp, 3.0s	-5.0 dBFS
+671_6Hz_harmonics.wav	Fundamental + 2nd/3rd harmonics, 5.0s	-8.5 dBFS
+671_6Hz_safe_-12dB.wav	Harmonics at -12 dB attenuation	-20.5 dBFS
+Visualizations
+Spectrum Analysis sandbox:///mnt/agents/output/671_6Hz_spectrum_analysis.png — Detailed 4-panel analysis of the harmonics version showing the clean fundamental peak at 94.5 dB, 2nd harmonic at 86.9 dB, and 3rd at 82.4 dB. The waveform view clearly shows the 10ms fade envelope.
+Audio Comparison sandbox:///mnt/agents/output/audio_comparison.png — Side-by-side spectral comparison of all four files with RMS levels annotated. The clean sine shows a single pure spike; the sweep shows the full chirp bandwidth; harmonics shows the 60/25/15 energy distribution; the safe version is identical spectrum shape but -12 dB down.
+Sweep Spectrogram sandbox:///mnt/agents/output/sweep_spectrogram.png — Time-frequency visualization confirming the linear sweep from 100 Hz to 1000 Hz over 3 seconds. The diagonal energy band is clean with minimal aliasing artifacts.
+Key Technical Details
+Parameter	Value
+Sample Rate	44,100 Hz
+Bit Depth	16-bit PCM
+Channels	Mono
+Fade Envelope	10 ms linear in/out
+Headroom	20% (80% of full scale)
+Frequency	671.6 Hz (+32.4 cents above E5)
+The harmonic weighting (0.6 / 0.25 / 0.15) keeps the fundamental dominant while the 2nd and 3rd add a subtle "reedy" character — much easier on the ear for extended testing than a pure sine. The -12 dB safe version is recommended for headphone burn-in or sensitivity testing.

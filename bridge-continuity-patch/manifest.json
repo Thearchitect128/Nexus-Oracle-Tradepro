@@ -1,0 +1,24 @@
+{
+  "name": "bridge-continuity-patch",
+  "version": "1.0.0",
+  "contract": "≈↻ ∧ ¬(↺) ⇒ Gφ",
+  "description": "Bridge Continuity layer with trace classification, formal spec, and deterministic test artifacts.",
+  "structure": [
+    "spec/modules/BridgeContinuitySpec.tla",
+    "src/lib/bridge/traceClassifier.ts",
+    "traces/bridge-witness-pass.json",
+    "traces/bridge-witness-fail.json",
+    "test/bridge-classifier.test.ts",
+    "docs/appendix/bridge-continuity.md"
+  ],
+  "invariants": [
+    "forward-cycle-established",
+    "no-reverse-cycle",
+    "global-convergence-to-phi"
+  ],
+  "determinism": {
+    "requiresSortedKeys": true,
+    "noTimestampsInHash": true,
+    "stableFloatPrecision": "1e-3"
+  }
+}

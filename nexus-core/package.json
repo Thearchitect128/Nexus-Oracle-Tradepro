@@ -1,0 +1,20 @@
+{
+  "name": "nexus-core",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/demo/runDemo.js",
+    "dev": "tsx src/demo/runDemo.ts",
+    "test": "vitest run",
+    "analyze": "tsx src/demo/run.ts",
+    "verify:analysis": "python3 verify.py --analysis analysis.json --sha analysis.json.sha256",
+    "generate:keys": "tsx scripts/generate-keys.ts"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.8.0",
+    "vitest": "^3.2.0"
+  }
+}

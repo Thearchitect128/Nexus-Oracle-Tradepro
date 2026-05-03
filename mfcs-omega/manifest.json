@@ -1,0 +1,18 @@
+{
+  "name": "mfcs-omega",
+  "version": "0.1.0",
+  "description": "Unified MFCS, OMEGA Oracle, Digital Mirror, and Codex repository.",
+  "author": "Mohammad",
+  "license": "MIT",
+  "components": {
+    "operator_guide": "OPERATOR.md",
+    "release_notes": "RELEASE_NOTES.md",
+    "architecture_overview": "docs/architecture-overview.md",
+    "copilot_contract": "codex/copilot/contract.md",
+    "spec": "TLA+ specifications and proofs",
+    "tlc": "TLC harnesses and trace adapters",
+    "oracle": "Kernel, spatial layer, agents, console",
+    "digital_mirror": "Reviewer-facing mirror and schema",
+    "codex": "VS Code extension and prompt contracts"
+  }
+}

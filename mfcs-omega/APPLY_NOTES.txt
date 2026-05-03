@@ -1,0 +1,18 @@
+# Apply Notes
+
+Add these files to your repository:
+
+- .github/workflows/symbol-registry-integrity.yml
+- scripts/generate_symbols_manifest.py
+- scripts/verify_symbols_manifest.py
+- scripts/sign_symbols_manifest.sh
+- scripts/verify_symbols_signature.sh
+- artifacts/symbols.manifest.json
+- docs/symbol-registry-signing.md
+
+Then run:
+
+1. python scripts/generate_symbols_manifest.py
+2. python scripts/verify_symbols_manifest.py
+3. bash scripts/sign_symbols_manifest.sh artifacts/symbols.manifest.json symbols-signing.pem
+4. commit the manifest + signature + sha256

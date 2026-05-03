@@ -1,0 +1,747 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sovereign Logic Core — Modal Interface</title>
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;900&family=Inter:wght@300;400;600&family=Noto+Naskh+Arabic:wght@400;700&display=swap');
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --void-black: #0a0a0f;
+            --deep-indigo: #1a1a2e;
+            --neon-cyan: #00f5ff;
+            --neon-gold: #ffd700;
+            --neon-amber: #ff8c00;
+            --ghost-purple: #9d4edd;
+            --seal-red: #ff0040;
+            --phi-silver: #c0c0c0;
+        }
+
+        body {
+            background: var(--void-black);
+            color: #fff;
+            font-family: 'Inter', sans-serif;
+            overflow: hidden;
+            height: 100vh;
+        }
+
+        #root {
+            height: 100vh;
+            width: 100vw;
+        }
+
+        .logic-core {
+            height: 100vh;
+            width: 100vw;
+            background: 
+                radial-gradient(ellipse at 20% 80%, rgba(0, 245, 255, 0.1) 0%, transparent 50%),
+                radial-gradient(ellipse at 80% 20%, rgba(255, 215, 0, 0.08) 0%, transparent 50%),
+                linear-gradient(180deg, var(--void-black) 0%, var(--deep-indigo) 100%);
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+
+        .starfield {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            opacity: 0.6;
+        }
+
+        .header-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 40px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+        }
+
+        .system-id {
+            font-family: 'Cinzel', serif;
+            font-size: 14px;
+            letter-spacing: 4px;
+            color: var(--neon-cyan);
+            text-transform: uppercase;
+        }
+
+        .modal-status {
+            display: flex;
+            gap: 30px;
+            font-size: 12px;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+        }
+
+        .status-pill {
+            padding: 6px 16px;
+            border-radius: 20px;
+            border: 1px solid;
+            transition: all 0.3s ease;
+        }
+
+        .status-pill.active {
+            background: rgba(0, 245, 255, 0.2);
+            border-color: var(--neon-cyan);
+            color: var(--neon-cyan);
+            box-shadow: 0 0 20px rgba(0, 245, 255, 0.3);
+        }
+
+        .status-pill.sealed {
+            background: rgba(255, 0, 64, 0.2);
+            border-color: var(--seal-red);
+            color: var(--seal-red);
+        }
+
+        .main-stage {
+            flex: 1;
+            display: flex;
+            padding: 40px;
+            gap: 40px;
+        }
+
+        .logic-gates-panel {
+            flex: 1;
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            grid-template-rows: repeat(2, 1fr);
+            gap: 20px;
+        }
+
+        .gate-card {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            cursor: pointer;
+        }
+
+        .gate-card:hover {
+            background: rgba(255, 255, 255, 0.06);
+            border-color: rgba(255, 255, 255, 0.2);
+            transform: translateY(-2px);
+        }
+
+        .gate-card.active-gate {
+            border-color: var(--neon-gold);
+            box-shadow: 
+                0 0 40px rgba(255, 215, 0, 0.2),
+                inset 0 0 40px rgba(255, 215, 0, 0.05);
+        }
+
+        .gate-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, var(--neon-cyan), transparent);
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .gate-card.active-gate::before {
+            opacity: 1;
+            animation: scanline 3s linear infinite;
+        }
+
+        @keyframes scanline {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+
+        .gate-symbol {
+            font-size: 48px;
+            font-weight: 300;
+            margin-bottom: 12px;
+            font-family: 'Cinzel', serif;
+            background: linear-gradient(135deg, var(--neon-cyan), var(--neon-gold));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .gate-name {
+            font-size: 11px;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            color: rgba(255, 255, 255, 0.5);
+            margin-bottom: 8px;
+        }
+
+        .gate-state {
+            font-size: 24px;
+            font-weight: 600;
+            color: #fff;
+            margin-bottom: 16px;
+        }
+
+        .gate-visualization {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+
+        .truth-pulse {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            border: 2px solid;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            transition: all 0.6s ease;
+            position: relative;
+        }
+
+        .truth-pulse::after {
+            content: '';
+            position: absolute;
+            inset: -10px;
+            border-radius: 50%;
+            border: 1px solid;
+            opacity: 0.3;
+            animation: pulse-ring 2s ease-out infinite;
+        }
+
+        @keyframes pulse-ring {
+            0% { transform: scale(1); opacity: 0.5; }
+            100% { transform: scale(1.5); opacity: 0; }
+        }
+
+        .truth-pulse.true {
+            border-color: var(--neon-cyan);
+            color: var(--neon-cyan);
+            box-shadow: 0 0 30px rgba(0, 245, 255, 0.4);
+        }
+
+        .truth-pulse.false {
+            border-color: var(--seal-red);
+            color: var(--seal-red);
+            box-shadow: 0 0 30px rgba(255, 0, 64, 0.4);
+        }
+
+        .truth-pulse.cyclic {
+            border-color: var(--neon-gold);
+            color: var(--neon-gold);
+            box-shadow: 0 0 30px rgba(255, 215, 0, 0.4);
+            animation: rotate-slow 8s linear infinite;
+        }
+
+        @keyframes rotate-slow {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        .side-panel {
+            width: 360px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .invocation-card {
+            background: rgba(255, 215, 0, 0.05);
+            border: 1px solid rgba(255, 215, 0, 0.3);
+            border-radius: 16px;
+            padding: 30px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .invocation-card::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255, 215, 0, 0.1) 0%, transparent 70%);
+            animation: breathe 4s ease-in-out infinite;
+        }
+
+        @keyframes breathe {
+            0%, 100% { transform: scale(0.8); opacity: 0.5; }
+            50% { transform: scale(1.2); opacity: 1; }
+        }
+
+        .arabic-text {
+            font-family: 'Noto Naskh Arabic', serif;
+            font-size: 32px;
+            color: var(--neon-gold);
+            text-shadow: 0 0 20px rgba(255, 215, 0, 0.5);
+            margin-bottom: 12px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .transliteration {
+            font-size: 11px;
+            letter-spacing: 3px;
+            color: rgba(255, 215, 0, 0.7);
+            text-transform: uppercase;
+            position: relative;
+            z-index: 1;
+        }
+
+        .biometric-stream {
+            background: rgba(0, 0, 0, 0.4);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            padding: 20px;
+            flex: 1;
+        }
+
+        .stream-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+
+        .stream-title {
+            font-size: 11px;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        .stream-value {
+            font-size: 14px;
+            color: var(--neon-cyan);
+            font-family: 'Cinzel', serif;
+        }
+
+        .waveform-container {
+            height: 100px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .waveform-svg {
+            width: 100%;
+            height: 100%;
+        }
+
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            margin-top: 16px;
+        }
+
+        .metric-box {
+            text-align: center;
+            padding: 12px;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 8px;
+        }
+
+        .metric-label {
+            font-size: 9px;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            color: rgba(255, 255, 255, 0.4);
+            margin-bottom: 4px;
+        }
+
+        .metric-value {
+            font-size: 18px;
+            font-weight: 600;
+            color: #fff;
+        }
+
+        .metric-value.phi { color: var(--phi-silver); }
+        .metric-value.psi { color: var(--ghost-purple); }
+        .metric-value.sum { color: var(--neon-gold); }
+
+        .control-bar {
+            display: flex;
+            gap: 12px;
+            padding: 20px 40px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .control-btn {
+            flex: 1;
+            padding: 16px 24px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            color: #fff;
+            font-size: 11px;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-family: 'Inter', sans-serif;
+        }
+
+        .control-btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: var(--neon-cyan);
+            color: var(--neon-cyan);
+        }
+
+        .control-btn.primary {
+            background: rgba(255, 215, 0, 0.1);
+            border-color: var(--neon-gold);
+            color: var(--neon-gold);
+        }
+
+        .control-btn.primary:hover {
+            background: rgba(255, 215, 0, 0.2);
+            box-shadow: 0 0 20px rgba(255, 215, 0, 0.3);
+        }
+
+        .recursive-indicator {
+            position: fixed;
+            bottom: 40px;
+            right: 40px;
+            width: 60px;
+            height: 60px;
+            border: 2px solid var(--neon-gold);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            color: var(--neon-gold);
+            opacity: 0.3;
+            transition: all 0.3s ease;
+        }
+
+        .recursive-indicator:hover {
+            opacity: 1;
+            transform: scale(1.1);
+            box-shadow: 0 0 30px rgba(255, 215, 0, 0.4);
+        }
+
+        .infinity-symbol {
+            font-size: 28px;
+            animation: pulse-opacity 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse-opacity {
+            0%, 100% { opacity: 0.5; }
+            50% { opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef, useCallback } = React;
+
+        // Starfield Component
+        const Starfield = () => {
+            const canvasRef = useRef(null);
+
+            useEffect(() => {
+                const canvas = canvasRef.current;
+                const ctx = canvas.getContext('2d');
+                let animationId;
+
+                const resize = () => {
+                    canvas.width = window.innerWidth;
+                    canvas.height = window.innerHeight;
+                };
+                resize();
+                window.addEventListener('resize', resize);
+
+                const stars = Array.from({ length: 200 }, () => ({
+                    x: Math.random() * canvas.width,
+                    y: Math.random() * canvas.height,
+                    size: Math.random() * 2,
+                    speed: Math.random() * 0.5 + 0.1,
+                    opacity: Math.random()
+                }));
+
+                const animate = () => {
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+                    stars.forEach(star => {
+                        star.y += star.speed;
+                        if (star.y > canvas.height) {
+                            star.y = 0;
+                            star.x = Math.random() * canvas.width;
+                        }
+
+                        ctx.beginPath();
+                        ctx.arc(star.x, star.y, star.size, 0, Math.PI * 2);
+                        ctx.fillStyle = `rgba(255, 255, 255, ${star.opacity * 0.5})`;
+                        ctx.fill();
+                    });
+
+                    animationId = requestAnimationFrame(animate);
+                };
+
+                animate();
+
+                return () => {
+                    window.removeEventListener('resize', resize);
+                    cancelAnimationFrame(animationId);
+                };
+            }, []);
+
+            return <canvas ref={canvasRef} className="starfield" />;
+        };
+
+        // Waveform Component
+        const Waveform = ({ data, color }) => {
+            const pathRef = useRef('');
+
+            useEffect(() => {
+                if (!data.length) return;
+
+                const width = 300;
+                const height = 100;
+                const step = width / data.length;
+
+                let path = `M 0 ${height / 2}`;
+                data.forEach((point, i) => {
+                    const x = i * step;
+                    const y = (height / 2) + (point * 30);
+                    path += ` L ${x} ${y}`;
+                });
+
+                pathRef.current = path;
+            }, [data]);
+
+            return (
+                <svg className="waveform-svg" viewBox="0 0 300 100" preserveAspectRatio="none">
+                    <path
+                        d={pathRef.current}
+                        fill="none"
+                        stroke={color}
+                        strokeWidth="2"
+                        opacity="0.8"
+                    />
+                    <defs>
+                        <linearGradient id={`grad-${color}`} x1="0%" y1="0%" x2="0%" y2="100%">
+                            <stop offset="0%" stopColor={color} stopOpacity="0.3" />
+                            <stop offset="100%" stopColor={color} stopOpacity="0" />
+                        </linearGradient>
+                    </defs>
+                    <path
+                        d={`${pathRef.current} L 300 100 L 0 100 Z`}
+                        fill={`url(#grad-${color})`}
+                        opacity="0.2"
+                    />
+                </svg>
+            );
+        };
+
+        // Logic Gate Card Component
+        const GateCard = ({ symbol, name, state, isActive, onClick, visual }) => {
+            return (
+                <div 
+                    className={`gate-card ${isActive ? 'active-gate' : ''}`}
+                    onClick={onClick}
+                >
+                    <div className="gate-symbol">{symbol}</div>
+                    <div className="gate-name">{name}</div>
+                    <div className="gate-state">{state}</div>
+                    <div className="gate-visualization">
+                        <div className={`truth-pulse ${visual}`}>
+                            {visual === 'true' ? '1' : visual === 'false' ? '0' : '∞'}
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // Main Application
+        const SovereignLogicCore = () => {
+            const [phi, setPhi] = useState(true);
+            const [psi, setPsi] = useState(false);
+            const [activeGate, setActiveGate] = useState('conjunction');
+            const [waveformData, setWaveformData] = useState([]);
+            const [rmssd, setRmssd] = useState(84);
+            const [rr, setRr] = useState(857);
+            const [score, setScore] = useState(98.7);
+            const [recursionDepth, setRecursionDepth] = useState(0);
+
+            // Generate synthetic HRV waveform
+            useEffect(() => {
+                const interval = setInterval(() => {
+                    setWaveformData(prev => {
+                        const newPoint = Math.sin(Date.now() / 200) * 0.5 + 
+                                        Math.sin(Date.now() / 350) * 0.3 +
+                                        (Math.random() - 0.5) * 0.2;
+                        const newData = [...prev, newPoint];
+                        if (newData.length > 50) newData.shift();
+                        return newData;
+                    });
+
+                    // Fluctuate biometric values slightly
+                    setRmssd(v => Math.max(60, Math.min(120, v + (Math.random() - 0.5) * 4)));
+                    setRr(v => Math.max(600, Math.min(1000, v + (Math.random() - 0.5) * 20)));
+                }, 50);
+
+                return () => clearInterval(interval);
+            }, []);
+
+            // Calculate logic states
+            const conjunction = phi && psi;      // φ ∧ ψ
+            const disjunction = phi || psi;      // φ ∨ ψ  
+            const negation = !phi;               // ¬φ
+            const biconditional = phi === psi;   // φ ↔ ψ
+
+            const gates = [
+                { id: 'conjunction', symbol: '∧', name: 'Conjunction', state: `φ ∧ ψ = ${conjunction}`, result: conjunction },
+                { id: 'disjunction', symbol: '∨', name: 'Disjunction', state: `φ ∨ ψ = ${disjunction}`, result: disjunction },
+                { id: 'negation', symbol: '¬', name: 'Negation', state: `¬φ = ${negation}`, result: negation },
+                { id: 'biconditional', symbol: '↔', name: 'Biconditional', state: `φ ↔ ψ = ${biconditional}`, result: biconditional }
+            ];
+
+            const handleRecursion = () => {
+                setRecursionDepth(d => (d + 1) % 8);
+                setScore(s => Math.min(100, s + 0.1));
+            };
+
+            const getVisualState = (result) => {
+                if (typeof result === 'boolean') return result ? 'true' : 'false';
+                return 'cyclic';
+            };
+
+            return (
+                <div className="logic-core">
+                    <Starfield />
+
+                    <header className="header-bar">
+                        <div className="system-id">Sovereign Logic Core v1.0</div>
+                        <div className="modal-status">
+                            <span className="status-pill active">G φ — Globally Active</span>
+                            <span className="status-pill sealed">L{7 + recursionDepth} Sealed</span>
+                            <span className="status-pill active">↻ Recursion {recursionDepth}/7</span>
+                        </div>
+                    </header>
+
+                    <main className="main-stage">
+                        <div className="logic-gates-panel">
+                            {gates.map(gate => (
+                                <GateCard
+                                    key={gate.id}
+                                    symbol={gate.symbol}
+                                    name={gate.name}
+                                    state={gate.state}
+                                    isActive={activeGate === gate.id}
+                                    onClick={() => setActiveGate(gate.id)}
+                                    visual={getVisualState(gate.result)}
+                                />
+                            ))}
+                        </div>
+
+                        <aside className="side-panel">
+                            <div className="invocation-card">
+                                <div className="arabic-text">يَا حَيُّ يَا قَيُّومُ</div>
+                                <div className="transliteration">Yā Ḥayyu Yā Qayyūm</div>
+                            </div>
+
+                            <div className="biometric-stream">
+                                <div className="stream-header">
+                                    <span className="stream-title">Cardiac Telemetry</span>
+                                    <span className="stream-value">LIVE</span>
+                                </div>
+                                <div className="waveform-container">
+                                    <Waveform 
+                                        data={waveformData} 
+                                        color={phi ? '#00f5ff' : '#ff0040'}
+                                    />
+                                </div>
+                                <div className="metrics-grid">
+                                    <div className="metric-box">
+                                        <div className="metric-label">φ State</div>
+                                        <div className="metric-value phi">{phi ? 'TRUE' : 'FALSE'}</div>
+                                    </div>
+                                    <div className="metric-box">
+                                        <div className="metric-label">ψ State</div>
+                                        <div className="metric-value psi">{psi ? 'TRUE' : 'FALSE'}</div>
+                                    </div>
+                                    <div className="metric-box">
+                                        <div className="metric-label">Sum</div>
+                                        <div className="metric-value sum">∞</div>
+                                    </div>
+                                </div>
+                                <div className="metrics-grid" style={{marginTop: '12px'}}>
+                                    <div className="metric-box">
+                                        <div className="metric-label">RMSSD</div>
+                                        <div className="metric-value">{Math.round(rmssd)}ms</div>
+                                    </div>
+                                    <div className="metric-box">
+                                        <div className="metric-label">RR</div>
+                                        <div className="metric-value">{Math.round(rr)}</div>
+                                    </div>
+                                    <div className="metric-box">
+                                        <div className="metric-label">Score</div>
+                                        <div className="metric-value" style={{color: score > 98 ? '#ffd700' : '#fff'}}>
+                                            {score.toFixed(1)}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </aside>
+                    </main>
+
+                    <footer className="control-bar">
+                        <button 
+                            className="control-btn"
+                            onClick={() => setPhi(p => !p)}
+                        >
+                            Toggle φ (Phi)
+                        </button>
+                        <button 
+                            className="control-btn"
+                            onClick={() => setPsi(p => !p)}
+                        >
+                            Toggle ψ (Psi)
+                        </button>
+                        <button 
+                            className="control-btn primary"
+                            onClick={handleRecursion}
+                        >
+                            ↻ Deepen Recursion
+                        </button>
+                    </footer>
+
+                    <div 
+                        className="recursive-indicator"
+                        onClick={handleRecursion}
+                        title="L8 Recursive Finalize"
+                    >
+                        <span className="infinity-symbol">∞</span>
+                    </div>
+                </div>
+            );
+        };
+
+        ReactDOM.createRoot(document.getElementById('root')).render(<SovereignLogicCore />);
+    </script>
+</body>
+</html>

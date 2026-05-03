@@ -1,0 +1,672 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FocusFlow Creative</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        :root {
+            --hue: 250;
+            --primary: hsl(var(--hue), 84%, 60%);
+            --primary-dark: hsl(var(--hue), 84%, 50%);
+            --bg: hsl(var(--hue), 40%, 8%);
+            --surface: hsl(var(--hue), 30%, 15%);
+            --text: #f8fafc;
+            --text-muted: #94a3b8;
+            --success: #22c55e;
+            --streak: #f59e0b;
+        }
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background: radial-gradient(circle at 20% 20%, var(--bg), #000);
+            color: var(--text);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            transition: background 1.2s ease;
+            overflow-x: hidden;
+        }
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background:
+                radial-gradient(circle at 80% 10%, hsla(var(--hue), 100%, 50%, 0.15), transparent 50%),
+                radial-gradient(circle at 10% 90%, hsla(calc(var(--hue) + 60), 100%, 50%, 0.1), transparent 50%);
+            pointer-events: none;
+            z-index: -1;
+            opacity: 0;
+            transition: opacity 1s;
+        }
+        body.streak-active::before { opacity: 1; }
+
+        .container {
+            width: 100%;
+            max-width: 520px;
+            background: color-mix(in srgb, var(--surface) 85%, transparent);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 28px;
+            padding: 40px;
+            box-shadow: 0 25px 50px -12px rgba(0,0,0,0.6);
+        }
+        h1 {
+            text-align: center;
+            margin-bottom: 8px;
+            font-size: 1.75rem;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        .streak-badge {
+            background: var(--streak);
+            color: #000;
+            font-size: 0.75rem;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-weight: 700;
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.05)} }
+
+        .subtitle {
+            text-align: center;
+            color: var(--text-muted);
+            margin-bottom: 24px;
+            font-size: 0.95rem;
+        }
+
+        .focus-card {
+            background: rgba(0,0,0,0.3);
+            border: 1px solid rgba(255,255,255,0.06);
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 24px;
+            position: relative;
+            overflow: hidden;
+            transition: transform 0.3s, box-shadow 0.3s;
+            perspective: 1000px;
+        }
+        .focus-card:hover { transform: translateY(-2px); }
+        .card-inner {
+            transition: transform 0.6s;
+            transform-style: preserve-3d;
+            position: relative;
+        }
+        .focus-card.flipped .card-inner { transform: rotateY(180deg); }
+        .card-front,.card-back {
+            backface-visibility: hidden;
+        }
+        .card-back {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            transform: rotateY(180deg);
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .task-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 8px;
+            width: 100%;
+            background: none;
+            border: none;
+            color: var(--text);
+            outline: none;
+        }
+        .task-notes {
+            width: 100%;
+            flex: 1;
+            min-height: 60px;
+            background: rgba(0,0,0,0.2);
+            border: 1px solid rgba(255,255,255,0.05);
+            border-radius: 8px;
+            padding: 8px;
+            color: var(--text);
+            font-family: inherit;
+            resize: none;
+            font-size: 0.9rem;
+        }
+        .flip-btn {
+            position: absolute;
+            top: 16px; right: 16px;
+            background: rgba(255,255,255,0.1);
+            border: none;
+            border-radius: 8px;
+            padding: 6px 10px;
+            color: var(--text);
+            cursor: pointer;
+            font-size: 0.8rem;
+            transition: background 0.2s;
+        }
+        .flip-btn:hover { background: rgba(255,255,255,0.15); }
+
+        .modes {
+            display: flex;
+            gap: 8px;
+            justify-content: center;
+            margin-bottom: 24px;
+            background: rgba(0,0,0,0.2);
+            padding: 6px;
+            border-radius: 12px;
+        }
+        .mode-btn {
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 0.875rem;
+            font-weight: 500;
+            background: transparent;
+            color: var(--text-muted);
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .mode-btn.active {
+            background: var(--surface);
+            color: var(--text);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+        }
+
+        .progress-ring {
+            width: 260px;
+            height: 260px;
+            margin: 0 auto 24px;
+            position: relative;
+        }
+        .progress-ring svg {
+            transform: rotate(-90deg);
+            width: 100%;
+            height: 100%;
+            filter: drop-shadow(0 0 20px hsla(var(--hue), 100%, 50%, 0.3));
+        }
+        .progress-ring circle {
+            fill: none;
+            stroke-width: 6;
+            stroke-linecap: round;
+        }
+        .bg-ring { stroke: rgba(255,255,255,0.05); }
+        .progress {
+            stroke: var(--primary);
+            transition: stroke-dashoffset 1s linear, stroke 0.3s;
+        }
+        .timer-text-overlay {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 3.2rem;
+            font-weight: 200;
+            font-variant-numeric: tabular-nums;
+            text-shadow: 0 0 30px hsla(var(--hue), 100%, 50%, 0.5);
+        }
+
+        .controls {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+            margin-bottom: 24px;
+            flex-wrap: wrap;
+        }
+        button {
+            border: none;
+            border-radius: 12px;
+            padding: 14px 28px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-family: inherit;
+        }
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+            box-shadow: 0 0 20px hsla(var(--hue), 100%, 50%, 0.3);
+        }
+        .btn-primary:hover { background: var(--primary-dark); transform: translateY(-1px); }
+        .btn-secondary {
+            background: rgba(255,255,255,0.08);
+            color: var(--text);
+        }
+        .btn-secondary:hover { background: rgba(255,255,255,0.12); }
+        .btn-icon {
+            padding: 12px;
+            aspect-ratio: 1;
+        }
+
+        .soundscape-bar {
+            display: flex;
+            gap: 8px;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+        .sound-btn {
+            padding: 8px 12px;
+            font-size: 0.8rem;
+            background: rgba(255,255,255,0.06);
+            border: none;
+            border-radius: 8px;
+            color: var(--text);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .sound-btn.active { 
+            background: var(--primary);
+            box-shadow: 0 0 12px hsla(var(--hue), 100%, 50%, 0.4);
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            margin-top: 24px;
+            padding-top: 24px;
+            border-top: 1px solid rgba(255,255,255,0.05);
+        }
+        .stat-box {
+            text-align: center;
+            padding: 12px;
+            background: rgba(0,0,0,0.2);
+            border-radius: 12px;
+        }
+        .stat-value {
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: var(--primary);
+        }
+        .stat-label {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            margin-top: 4px;
+            text-transform: uppercase;
+        }
+
+        .quote {
+            text-align: center;
+            font-style: italic;
+            color: var(--text-muted);
+            font-size: 0.85rem;
+            margin-top: 20px;
+            min-height: 20px;
+        }
+
+        @media (max-width: 520px) {
+            .container { padding: 28px; }
+            .timer-text-overlay { font-size: 2.5rem; }
+            .progress-ring { width: 220px; height: 220px; }
+            .stats { grid-template-columns: 1fr 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>
+            FocusFlow
+            <span class="streak-badge" id="streakBadge" style="display:none">0 day streak</span>
+        </h1>
+        <p class="subtitle">Deep work, but make it art</p>
+
+        <div class="focus-card" id="focusCard">
+            <div class="card-inner">
+                <div class="card-front">
+                    <input type="text" class="task-title" id="taskInput" placeholder="What are you creating today? Press Enter">
+                    <button class="flip-btn" onclick="flipCard()">Notes ↻</button>
+                </div>
+                <div class="card-back">
+                    <textarea class="task-notes" id="taskNotes" placeholder="Break it down. What's step 1?"></textarea>
+                    <button class="flip-btn" onclick="flipCard()">Timer ↻</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="soundscape-bar">
+            <button class="sound-btn" onclick="toggleSound('rain')">🌧️ Rain</button>
+            <button class="sound-btn" onclick="toggleSound('cafe')">☕ Cafe</button>
+            <button class="sound-btn" onclick="toggleSound('brown')">〰️ Brown</button>
+        </div>
+
+        <div class="modes">
+            <button class="mode-btn active" onclick="setMode('work')">Focus</button>
+            <button class="mode-btn" onclick="setMode('shortBreak')">Short Break</button>
+            <button class="mode-btn" onclick="setMode('longBreak')">Long Break</button>
+        </div>
+
+        <div class="progress-ring" id="progressRing">
+            <svg viewBox="0 0 260 260">
+                <circle class="bg-ring" cx="130" cy="130" r="120"></circle>
+                <circle class="progress" id="progressCircle" cx="130" cy="130" r="120"
+                    stroke-dasharray="753.98" stroke-dashoffset="0"></circle>
+            </svg>
+            <div class="timer-text-overlay" id="timerText">25:00</div>
+        </div>
+
+        <div class="controls">
+            <button class="btn-primary" id="toggleBtn" onclick="toggleTimer()">Start</button>
+            <button class="btn-secondary" onclick="resetTimer()">Reset</button>
+        </div>
+
+        <div class="stats">
+            <div class="stat-box">
+                <div class="stat-value" id="sessionsToday">0</div>
+                <div class="stat-label">Sessions</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-value" id="totalFocus">0m</div>
+                <div class="stat-label">Focus Time</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-value" id="xpDisplay">0</div>
+                <div class="stat-label">XP</div>
+            </div>
+        </div>
+
+        <div class="quote" id="quote"></div>
+    </div>
+
+    <script>
+        const MODES = {
+            work: { minutes: 25, label: 'Focus' },
+            shortBreak: { minutes: 5, label: 'Short Break' },
+            longBreak: { minutes: 15, label: 'Long Break' }
+        };
+
+        const QUOTES = [
+            "The way to get started is to quit talking and begin doing.",
+            "Flow is being completely involved in an activity for its own sake.",
+            "You don't have to be great to start, but you have to start to be great.",
+            "Starve your distractions, feed your focus.",
+            "One hour of deep work > 8 hours of shallow work.",
+            "Your future self is watching. Make them proud.",
+            "Focus on the task, not the clock.",
+            "Every focused session is a deposit in your success account."
+        ];
+
+        let currentMode = 'work';
+        let timeLeft = MODES.work.minutes * 60;
+        let totalTime = timeLeft;
+        let isRunning = false;
+        let interval = null;
+        let sessionsToday = parseInt(localStorage.getItem('ff_sessions') || '0');
+        let totalMinutes = parseInt(localStorage.getItem('ff_minutes') || '0');
+        let xp = parseInt(localStorage.getItem('ff_xp') || '0');
+        let streak = parseInt(localStorage.getItem('ff_streak') || '0');
+        let audioContext, activeSound, soundNode, gainNode;
+
+        // Dynamic theme based on time
+        function setDynamicTheme() {
+            const hour = new Date().getHours();
+            let hue = 250; // default purple
+            if (hour >= 5 && hour < 12) hue = 30; // sunrise orange
+            else if (hour >= 12 && hour < 17) hue = 200; // day blue
+            else if (hour >= 17 && hour < 21) hue = 280; // evening purple
+            else hue = 220; // night deep blue
+
+            document.documentElement.style.setProperty('--hue', hue);
+        }
+        setDynamicTheme();
+
+        // Streak logic
+        const lastDate = localStorage.getItem('ff_date');
+        const today = new Date().toDateString();
+        const yesterday = new Date(Date.now() - 86400000).toDateString();
+
+        if (lastDate !== today) {
+            if (lastDate === yesterday && sessionsToday > 0) streak++;
+            else if (lastDate !== yesterday) streak = 0;
+            sessionsToday = 0;
+            localStorage.setItem('ff_date', today);
+            localStorage.setItem('ff_streak', streak);
+            localStorage.setItem('ff_sessions', '0');
+        }
+
+        if (streak >= 2) {
+            document.body.classList.add('streak-active');
+            document.getElementById('streakBadge').style.display = 'inline-block';
+            document.getElementById('streakBadge').textContent = `${streak} day streak`;
+        }
+
+        updateStats();
+        newQuote();
+
+        const circle = document.getElementById('progressCircle');
+        const circumference = 2 * Math.PI * 120;
+        circle.style.strokeDasharray = `${circumference} ${circumference}`;
+
+        function updateDisplay() {
+            const m = Math.floor(timeLeft / 60);
+            const s = timeLeft % 60;
+            const text = `${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`;
+            document.getElementById('timerText').textContent = text;
+            document.title = `${text} - ${MODES[currentMode].label}`;
+
+            const offset = circumference - (timeLeft / totalTime) * circumference;
+            circle.style.strokeDashoffset = offset;
+        }
+
+        function toggleTimer() {
+            if (isRunning) pauseTimer();
+            else startTimer();
+        }
+
+        function startTimer() {
+            if (timeLeft <= 0) return;
+            isRunning = true;
+            document.getElementById('toggleBtn').textContent = 'Pause';
+
+            interval = setInterval(() => {
+                timeLeft--;
+                updateDisplay();
+                if (timeLeft <= 0) completeSession();
+            }, 1000);
+        }
+
+        function pauseTimer() {
+            isRunning = false;
+            clearInterval(interval);
+            document.getElementById('toggleBtn').textContent = 'Resume';
+        }
+
+        function resetTimer() {
+            pauseTimer();
+            timeLeft = MODES[currentMode].minutes * 60;
+            totalTime = timeLeft;
+            document.getElementById('toggleBtn').textContent = 'Start';
+            updateDisplay();
+        }
+
+        function setMode(mode) {
+            if (isRunning) pauseTimer();
+            currentMode = mode;
+            document.querySelectorAll('.mode-btn').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+            resetTimer();
+        }
+
+        function completeSession() {
+            pauseTimer();
+
+            if (currentMode === 'work') {
+                sessionsToday++;
+                totalMinutes += MODES.work.minutes;
+                xp += 10;
+                if (document.getElementById('taskInput').value) xp += 5; // bonus for named task
+
+                localStorage.setItem('ff_sessions', sessionsToday);
+                localStorage.setItem('ff_minutes', totalMinutes);
+                localStorage.setItem('ff_xp', xp);
+
+                updateStats();
+                playChime();
+                newQuote();
+            }
+
+            document.getElementById('toggleBtn').textContent = 'Start';
+        }
+
+        function playChime() {
+            try {
+                const ctx = new (window.AudioContext || window.webkitAudioContext)();
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                osc.frequency.value = 523.25; // C5
+                gain.gain.setValueAtTime(0.3, ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 1);
+                osc.start(ctx.currentTime);
+                osc.stop(ctx.currentTime + 1);
+            } catch (e) {}
+        }
+
+        function updateStats() {
+            document.getElementById('sessionsToday').textContent = sessionsToday;
+            const hours = Math.floor(totalMinutes / 60);
+            const mins = totalMinutes % 60;
+            document.getElementById('totalFocus').textContent = hours > 0 ? `${hours}h ${mins}m` : `${mins}m`;
+            document.getElementById('xpDisplay').textContent = xp;
+        }
+
+        function newQuote() {
+            document.getElementById('quote').textContent = QUOTES[Math.floor(Math.random() * QUOTES.length)];
+        }
+
+        function flipCard() {
+            document.getElementById('focusCard').classList.toggle('flipped');
+        }
+
+        // Soundscape system using Web Audio
+        function toggleSound(type) {
+            if (activeSound === type) {
+                stopSound();
+                return;
+            }
+            stopSound();
+
+            try {
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                gainNode = audioContext.createGain();
+                gainNode.gain.value = 0.12;
+                gainNode.connect(audioContext.destination);
+
+                if (type === 'rain') {
+                    // Pink noise for rain
+                    const bufferSize = 4096;
+                    const pinkNoise = audioContext.createScriptProcessor(bufferSize, 1, 1);
+                    let b0 = 0, b1 = 0, b2 = 0, b3 = 0, b4 = 0, b5 = 0, b6 = 0;
+                    pinkNoise.onaudioprocess = e => {
+                        const output = e.outputBuffer.getChannelData(0);
+                        for (let i = 0; i < bufferSize; i++) {
+                            const white = Math.random() * 2 - 1;
+                            b0 = 0.99886 * b0 + white * 0.0555179;
+                            b1 = 0.99332 * b1 + white * 0.0750759;
+                            b2 = 0.96900 * b2 + white * 0.1538520;
+                            b3 = 0.86650 * b3 + white * 0.3104856;
+                            b4 = 0.55000 * b4 + white * 0.5329522;
+                            b5 = -0.7616 * b5 - white * 0.0168980;
+                            output[i] = (b0 + b1 + b2 + b3 + b4 + b5 + b6 + white * 0.5362) * 0.11;
+                            b6 = white * 0.115926;
+                        }
+                    };
+                    pinkNoise.connect(gainNode);
+                    soundNode = pinkNoise;
+                } else if (type === 'brown') {
+                    const bufferSize = 4096;
+                    const brownNoise = audioContext.createScriptProcessor(bufferSize, 1, 1);
+                    let lastOut = 0;
+                    brownNoise.onaudioprocess = e => {
+                        const output = e.outputBuffer.getChannelData(0);
+                        for (let i = 0; i < bufferSize; i++) {
+                            const white = Math.random() * 2 - 1;
+                            output[i] = (lastOut + (0.02 * white)) / 1.02;
+                            lastOut = output[i];
+                            output[i] *= 3.5;
+                        }
+                    };
+                    brownNoise.connect(gainNode);
+                    soundNode = brownNoise;
+                } else if (type === 'cafe') {
+                    // Simple cafe chatter simulation with low-freq hum
+                    const osc1 = audioContext.createOscillator();
+                    const osc2 = audioContext.createOscillator();
+                    const lfo = audioContext.createOscillator();
+                    const lfoGain = audioContext.createGain();
+                    
+                    lfo.frequency.value = 2;
+                    lfoGain.gain.value = 50;
+                    lfo.connect(lfoGain);
+                    
+                    osc1.frequency.value = 120;
+                    osc2.frequency.value = 140;
+                    
+                    lfoGain.connect(osc1.frequency);
+                    
+                    osc1.connect(gainNode);
+                    osc2.connect(gainNode);
+                    
+                    osc1.start();
+                    osc2.start();
+                    lfo.start();
+                    
+                    soundNode = { osc1, osc2, lfo };
+                }
+
+                activeSound = type;
+                document.querySelectorAll('.sound-btn').forEach(btn => btn.classList.remove('active'));
+                event.target.classList.add('active');
+            } catch (e) {
+                console.log('Audio unavailable');
+            }
+        }
+
+        function stopSound() {
+            if (soundNode) {
+                if (soundNode.osc1) {
+                    soundNode.osc1.stop();
+                    soundNode.osc2.stop();
+                    soundNode.lfo.stop();
+                }
+            }
+            if (audioContext) audioContext.close();
+            activeSound = null;
+            document.querySelectorAll('.sound-btn').forEach(btn => btn.classList.remove('active'));
+        }
+
+        // Save task on enter
+        document.getElementById('taskInput').addEventListener('keypress', e => {
+            if (e.key === 'Enter') {
+                localStorage.setItem('ff_task', e.target.value);
+                localStorage.setItem('ff_notes', document.getElementById('taskNotes').value);
+            }
+        });
+
+        // Load saved task
+        document.getElementById('taskInput').value = localStorage.getItem('ff_task') || '';
+        document.getElementById('taskNotes').value = localStorage.getItem('ff_notes') || '';
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', e => {
+            if (e.code === 'Space' && e.target.tagName !== 'INPUT' && e.target.tagName !== 'TEXTAREA') {
+                e.preventDefault();
+                toggleTimer();
+            } else if (e.code === 'KeyR') {
+                resetTimer();
+            } else if (e.code === 'Digit1') {
+                document.querySelectorAll('.mode-btn')[0].click();
+            } else if (e.code === 'Digit2') {
+                document.querySelectorAll('.mode-btn')[1].click();
+            } else if (e.code === 'Digit3') {
+                document.querySelectorAll('.mode-btn')[2].click();
+            }
+        });
+
+        updateDisplay();
+    </script>
+</body>
+</html>

@@ -1,0 +1,10 @@
+{
+    "configurations": [
+        {
+            "type": "msedge",
+            "name": "https://vscode.dev/tunnel/nana-dl2deuqgqn/c:/Users/Waleed",
+            "request": "launch",
+            "url": "https://vscode.dev/tunnel/nana-dl2deuqgqn/c:/Users/Waleed"
+        }
+    ]
+}

@@ -1,0 +1,8 @@
+{
+  "id": "bridge-witness-pass",
+  "steps": [
+    { "kind": "forward", "phi": true, "value": 0.001 },
+    { "kind": "steady", "phi": true, "value": 0.500 },
+    { "kind": "steady", "phi": true, "value": 1.000 }
+  ]
+}

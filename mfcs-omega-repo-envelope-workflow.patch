@@ -1,0 +1,397 @@
+--- README.md.bak	2026-04-20 19:33:22.411225893 +0000
++++ README.md	2026-04-20 19:35:05.097021880 +0000
+@@ -22,11 +22,28 @@
+ git clone <your-repo-url> mfcs-omega
+ cd mfcs-omega
+ 
+-# Run verification (TLA+ / TLC harness)
+-./tools/verify.sh
+-
+-# Package a release artifact
+-./tools/package.sh
++# Run the full reproducibility pipeline
++./tools/run-all.sh
+ ```
+ 
+-See `docs/architecture-overview.md`, `OPERATOR.md`, and `docs/oracle-overview.md` for a guided tour.
++This pipeline executes:
++- verification (`./tools/verify.sh`)
++- Digital Mirror build (`python3 tools/build-mirror.py`)
++- packaging (`./tools/package.sh`)
++
++## Guided reading
++
++Start here for a complete orientation:
++- `OPERATOR.md`
++- `docs/architecture-overview.md`
++- `docs/laws/README.md`
++- `codex/copilot/contract.md`
++
++## Formal compatibility modules
++
++The formal envelope-law compatibility layer lives in:
++- `spec/modules/EnvelopeLaws.tla`
++- `spec/modules/envelope-laws.tla`
++
++The lowercase module preserves compatibility with older references while the
++canonical uppercase module remains available for direct import from newer specs.
+--- OPERATOR.md.bak	2026-04-20 19:33:22.436913256 +0000
++++ OPERATOR.md	2026-04-20 19:35:05.115158978 +0000
+@@ -6,6 +6,20 @@
+ 
+ ---
+ 
++## 0. One-command reproducibility
++
++Run the complete operator pipeline:
++
++```bash
++./tools/run-all.sh
++```
++
++This executes verification, mirror generation, and packaging in sequence.
++Use this command when preparing an operator review, release artifact, or mirror
++refresh.
++
++---
++
+ ## 1. Verification Pipeline (MFCS Core)
+ 
+ ### Run full TLA+ verification
+@@ -46,7 +60,25 @@
+ 
+ ---
+ 
+-## 3. Build the Digital Mirror
++## 3. Envelope laws
++
++The formal envelope-law documentation and compatibility layer are part of the
++operator workflow.
++
++Read:
++- `docs/laws/README.md`
++- `docs/laws/phi-A.md`
++
++Reference modules:
++- `spec/modules/EnvelopeLaws.tla`
++- `spec/modules/envelope-laws.tla`
++
++The compatibility module is intended for stable operator workflows and legacy
++references that still point to the lowercase filename.
++
++---
++
++## 4. Build the Digital Mirror
+ ```bash
+ python3 tools/build-mirror.py
+ ```
+@@ -55,9 +87,16 @@
+ - `digital-mirror/mirror.json`
+ - `digital-mirror/mirror-build-log.md`
+ 
++The mirror now includes:
++- extracted invariants
++- extracted law metadata
++- latest classified trace
++- oracle summary
++- build metadata
++
+ ---
+ 
+-## 4. Package a Release
++## 5. Package a Release
+ ```bash
+ ./tools/package.sh
+ ```
+@@ -72,7 +111,7 @@
+ 
+ ---
+ 
+-## 5. OMEGA Oracle Operation
++## 6. OMEGA Oracle Operation
+ 
+ ### Kernel Loop
+ See `oracle/omega-kernel/kernel-loop.md`.
+@@ -88,7 +127,7 @@
+ 
+ ---
+ 
+-## 6. Codex + VS Code Extension
++## 7. Codex + VS Code Extension
+ 
+ ### Build extension
+ ```bash
+@@ -102,18 +141,17 @@
+ 
+ ---
+ 
+-## 7. GitHub Workflows
++## 8. GitHub Workflows
+ 
+ - `verify.yml` runs TLA+ verification on every push.
+ - `release.yml` can be extended to publish artifacts.
+ 
+ ---
+ 
+-## 8. First Release Checklist
++## 9. First Release Checklist
+ 
+-- [ ] Run verification
++- [ ] Run `./tools/run-all.sh`
++- [ ] Inspect mirror metadata and law extraction
+ - [ ] Generate checksums
+-- [ ] Build Digital Mirror
+-- [ ] Package release
+ - [ ] Tag version
+ - [ ] Push to GitHub
+--- manifest.json.bak	2026-04-20 19:33:22.461973931 +0000
++++ manifest.json	2026-04-20 19:35:05.200905438 +0000
+@@ -8,7 +8,9 @@
+     "operator_guide": "OPERATOR.md",
+     "release_notes": "RELEASE_NOTES.md",
+     "architecture_overview": "docs/architecture-overview.md",
++    "envelope_laws_docs": "docs/laws/README.md",
+     "copilot_contract": "codex/copilot/contract.md",
++    "compat_envelope_module": "spec/modules/envelope-laws.tla",
+     "spec": "TLA+ specifications and proofs",
+     "tlc": "TLC harnesses and trace adapters",
+     "oracle": "Kernel, spatial layer, agents, console",
+--- docs/architecture-overview.md.bak	2026-04-20 19:33:22.484438727 +0000
++++ docs/architecture-overview.md	2026-04-20 19:35:05.132253833 +0000
+@@ -9,6 +9,10 @@
+ 
+ Each layer is self-contained but shares global invariants and envelope laws.
+ 
++Envelope-law materials are documented in `docs/laws/README.md` and implemented
++formally in both `spec/modules/EnvelopeLaws.tla` and the compatibility module
++`spec/modules/envelope-laws.tla`.
++
+ # Architecture Diagram (ASCII)
+ 
+ ```text
+--- spec/modules/envelope-laws.tla.bak	2026-04-20 19:33:22.508685255 +0000
++++ spec/modules/envelope-laws.tla	2026-04-20 19:35:05.223401774 +0000
+@@ -1,13 +1,43 @@
+ ----------------------------- MODULE envelope-laws -----------------------------
+-EXTENDS Naturals, Sequences
++EXTENDS Naturals, Sequences, FiniteSets
++
++(***************************************************************************
++ Compatibility envelope-law module.
++
++ This module preserves the lowercase filename used in older references while
++ exposing explicit predicates and aliases that match the canonical
++ EnvelopeLaws.tla intent more closely.
++***************************************************************************)
++
++CONSTANTS
++    MaxDepth,
++    AllowedInputs,
++    MaxEnvelope
+ 
+ VARIABLES state
+ 
+-EnvelopeLaw1 ==
+-    /\ Len(state) <= MaxDepth
++DepthBound ==
++    Len(state) <= MaxDepth
+ 
+-EnvelopeLaw2 ==
+-    /\ \A i \in DOMAIN state:
++InputBound ==
++    \A i \in DOMAIN state:
+         state[i] \in AllowedInputs
+ 
++HistoryFinite ==
++    IsFiniteSet(DOMAIN state)
++
++EnvelopeBudget ==
++    Len(state) <= MaxEnvelope
++
++InEnvelope ==
++    /\ DepthBound
++    /\ InputBound
++    /\ HistoryFinite
++    /\ EnvelopeBudget
++
++\* Backward-compatible aliases
++EnvelopeLaw1 == DepthBound
++EnvelopeLaw2 == InputBound
++Envelope == InEnvelope
++
+ =============================================================================
+--- tools/build-mirror.py.bak	2026-04-20 19:33:22.529041821 +0000
++++ tools/build-mirror.py	2026-04-20 19:35:05.256271087 +0000
+@@ -1,50 +1,105 @@
+ #!/usr/bin/env python3
+ import json
++import re
++from datetime import datetime, timezone
+ from pathlib import Path
+ 
+ ROOT = Path(__file__).resolve().parents[1]
+-MIRROR = ROOT / "digital-mirror" / "mirror.json"
+-LOG = ROOT / "digital-mirror" / "mirror-build-log.md"
+-
+-#!/usr/bin/env python3
+-import json
+-from pathlib import Path
+-
+-ROOT = Path(__file__).resolve().parents[1]
+-
+ TLC_TRACE = ROOT / "tlc" / "traces" / "classified"
+ INVARIANTS = ROOT / "spec" / "modules" / "Invariants.tla"
++LAW_EXAMPLES = ROOT / "mirror"
+ MIRROR = ROOT / "digital-mirror" / "mirror.json"
+ LOG = ROOT / "digital-mirror" / "mirror-build-log.md"
+ 
++
+ def load_latest_trace():
+-    traces = sorted(TLC_TRACE.glob("*.json"), reverse=True)
++    traces = sorted(
++        TLC_TRACE.glob("*.json"),
++        key=lambda p: p.stat().st_mtime,
++        reverse=True,
++    )
+     if not traces:
+-        return None
+-    return json.loads(traces[0].read_text())
++        return None, None
++    latest = traces[0]
++    return latest.name, json.loads(latest.read_text())
++
++
++def extract_invariants():
++    if not INVARIANTS.exists():
++        return []
++    text = INVARIANTS.read_text()
++    matches = re.findall(r"(?m)^([A-Za-z][A-Za-z0-9_]*)\s*==", text)
++    blacklist = {"VARIABLES", "CONSTANTS", "ASSUME", "THEOREM"}
++    out = []
++    seen = set()
++    for name in matches:
++        if name in blacklist or name in seen:
++            continue
++        seen.add(name)
++        out.append(name)
++    return out
++
++
++def extract_laws():
++    laws = []
++    seen = set()
++    for path in sorted(LAW_EXAMPLES.glob("*_example.json")):
++        try:
++            payload = json.loads(path.read_text())
++        except json.JSONDecodeError:
++            continue
++        for law in payload.get("metadata", {}).get("laws", []):
++            law_id = law.get("id")
++            if not law_id or law_id in seen:
++                continue
++            seen.add(law_id)
++            laws.append(law)
++    return laws
++
+ 
+ def build():
+-    trace = load_latest_trace()
++    trace_name, trace = load_latest_trace()
++    invariants = extract_invariants()
++    laws = extract_laws()
++    built_at = datetime.now(timezone.utc).isoformat()
++
++    peaks = trace.get("peaks", []) if isinstance(trace, dict) else []
++    oracle_state = {
++        "kernel": "stable",
++        "spatial_layer": "active",
++        "agents": "idle",
++        "trace_loaded": bool(trace),
++        "active_law_ids": [law.get("id") for law in laws],
++    }
+ 
+     mirror = {
+-        "version": "0.1.0",
+-        "invariants": ["TypeOK", "OutputWellFormed"],
+-        "last_run": trace if trace else {},
+-        "oracle_state": {
+-            "kernel": "stable",
+-            "spatial_layer": "active",
+-            "agents": "idle"
++        "version": "0.2.0-dev",
++        "metadata": {
++            "built_at": built_at,
++            "source": "mfcs-omega",
++            "trace_file": trace_name,
++            "invariant_count": len(invariants),
++            "law_count": len(laws),
+         },
+-        "peaks": trace.get("peaks", []) if trace else []
++        "invariants": invariants,
++        "laws": laws,
++        "last_run": trace if trace else {},
++        "oracle_state": oracle_state,
++        "peaks": peaks,
+     }
+ 
+     MIRROR.write_text(json.dumps(mirror, indent=2))
+ 
+     LOG.write_text(
+         "# Mirror Build Log\n\n"
+-        "- Built v0.1.0 mirror\n"
++        f"- Built version: {mirror['version']}\n"
++        f"- Built at: {built_at}\n"
+         f"- Trace included: {bool(trace)}\n"
++        f"- Trace file: {trace_name or 'none'}\n"
++        f"- Invariants extracted: {len(invariants)}\n"
++        f"- Laws extracted: {len(laws)}\n"
+     )
+ 
++
+ if __name__ == "__main__":
+     build()
+--- /dev/null	2026-04-20 19:16:54.519029259 +0000
++++ docs/laws/README.md	2026-04-20 19:35:05.176406955 +0000
+@@ -0,0 +1,42 @@
++# Envelope Laws
++
++This directory contains operator-facing documentation for the envelope-law layer
++of MFCS–OMEGA.
++
++## Purpose
++
++Envelope laws define the admissible region of system evolution. They are global
++constraints over traces, state depth, and admissible inputs. They are not the
++dynamics themselves; they are the budget, boundary, and admissibility surface
++that the dynamics must respect.
++
++## Primary artifacts
++
++- `phi-A.md` — law note for the φ-governed attractor family.
++- `spec/modules/EnvelopeLaws.tla` — canonical envelope-law module.
++- `spec/modules/envelope-laws.tla` — compatibility layer with backward-compatible
++  aliases and legacy names.
++
++## Core predicates
++
++The compatibility module exposes the following predicates:
++
++- `DepthBound`
++- `InputBound`
++- `HistoryFinite`
++- `EnvelopeBudget`
++- `InEnvelope`
++
++These are intended to be read and reused by operators, reviewers, and legacy
++spec references.
++
++## Reproducibility path
++
++To rebuild the mirror with envelope-law metadata surfaced:
++
++```bash
++./tools/run-all.sh
++```
++
++This runs verification, mirror generation, and packaging, keeping the operator
++workflow and mirror artifact aligned.

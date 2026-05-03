@@ -1,0 +1,11 @@
+{
+  "version": "v1.0.0-msy-sealed",
+  "status": "FROZEN",
+  "algorithm": "sha256",
+  "root": "TypeScript SSOT",
+  "files": {
+    "src/lib/symbols/registry.ts": "sha256:REPLACE_ME",
+    "gen/symbols.py": "sha256:REPLACE_ME",
+    "gen/symbols/symbols.go": "sha256:REPLACE_ME"
+  }
+}

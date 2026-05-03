@@ -1,0 +1,23 @@
+{
+  "asset_id": "550e8400-e29b-41d4-a716-446655440000",
+  "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "created_at": "2026-04-25T10:00:00Z",
+  "creator": {
+    "id": "device-camera-001",
+    "signature": "abcdef1234567890"
+  },
+  "transforms": [
+    {
+      "type": "trim",
+      "timestamp": "2026-04-25T11:00:00Z",
+      "tool": "Adobe Premiere 2026",
+      "operator": "editor-key-001",
+      "signature": "fedcba0987654321"
+    }
+  ],
+  "metadata": {
+    "format": "video/mp4",
+    "duration_ms": 60000,
+    "sample_rate": 48000
+  }
+}

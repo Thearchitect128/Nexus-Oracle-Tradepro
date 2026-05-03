@@ -1,0 +1,13 @@
+﻿File,Size,Description
+`audio/clean.wav`,441 KB,"Pure 671.6 Hz sine wave, -0.9 dBFS"
+`audio/harmonics.wav`,441 KB,Fundamental + 2nd–5th harmonics (~17.7% THD)
+`audio/safe.wav`,441 KB,-20 dBFS attenuated safe playback tone
+`audio/sweep.wav`,441 KB,Log sweep 100 Hz → 2000 Hz
+`analysis/spectrum_analysis.png`,47 KB,FFT spectrum of clean tone
+`analysis/spectrogram.png`,498 KB,STFT of frequency sweep
+`analysis/comparison.png`,270 KB,Waveform comparison overlay
+`docs/AUDIO_TEST_SUITE_671_6HZ.md`,—,Full technical specification
+`README.md`,—,Quick-start guide
+`MANIFEST.schema.json`,—,JSON Schema for validation
+`GENERATE_MANIFEST.sh`,—,Deterministic checksum generator
+`checksums.sha256`,—,Cryptographic integrity anchor

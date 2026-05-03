@@ -1,0 +1,91 @@
+"""
+generate_path_registry.py
+
+Generate the full 96-entry canonical path registry JSON for Bridge [D].
+Fills in geometric properties (angles at 3.75-degree increments).
+Name, guardian, class, and weight fields use defaults that should be
+overridden from the canonical Codex corpus.
+
+Usage:
+    python generate_path_registry.py > path_registry_full.json
+
+Author: Mohammad Saad Younus
+"""
+
+import json
+
+NUM_PATHS = 96
+ANGLE_STEP = 360.0 / NUM_PATHS  # 3.75 degrees
+
+# Known canonical entries
+KNOWN = {
+    1:  {"name": "Crown",    "guardian": "Lion", "class": "crown",   "weight": 1.3, "dormant": False},
+    10: {"name": "Sentinel", "guardian": "Lion", "class": "dormant", "weight": 0.0, "dormant": True},
+}
+
+# Guardian sector assignments (5 sectors of ~19.2 paths each)
+# Override these from your canonical corpus
+GUARDIANS = ["Lion", "Raven", "Phoenix", "Dragon", "Owl"]
+
+# Default dormant path IDs — replace with canonical set
+DEFAULT_DORMANT = {10, 20, 30, 40, 50, 58, 66, 74, 82, 90}
+
+
+def make_entry(path_id: int) -> dict:
+    angle = round((path_id - 1) * ANGLE_STEP, 4)
+    guardian_idx = (path_id - 1) // (NUM_PATHS // len(GUARDIANS))
+    guardian_idx = min(guardian_idx, len(GUARDIANS) - 1)
+    default_guardian = GUARDIANS[guardian_idx]
+
+    if path_id in KNOWN:
+        k = KNOWN[path_id]
+        dormant = k["dormant"]
+        return {
+            "path_id": path_id,
+            "name": k["name"],
+            "guardian": k["guardian"],
+            "angle_deg": angle,
+            "canonical_status": "dormant" if dormant else "active",
+            "bridge_status": "locked" if dormant else "eligible",
+            "class": k["class"],
+            "weight": k["weight"],
+            "influence_raw": 0.0 if dormant else None,
+            "influence_norm": 0.0 if dormant else None,
+            "threshold": None,
+            "dormant": dormant,
+        }
+
+    dormant = path_id in DEFAULT_DORMANT
+    return {
+        "path_id": path_id,
+        "name": None,
+        "guardian": default_guardian,
+        "angle_deg": angle,
+        "canonical_status": "dormant" if dormant else "active",
+        "bridge_status": "locked" if dormant else "eligible",
+        "class": "dormant" if dormant else None,
+        "weight": 0.0 if dormant else 1.0,
+        "influence_raw": 0.0 if dormant else None,
+        "influence_norm": 0.0 if dormant else None,
+        "threshold": None,
+        "dormant": dormant,
+    }
+
+
+def main():
+    registry = {
+        "_schema": "Canonical Path Registry for Bridge [D]",
+        "_author": "Mohammad Saad Younus",
+        "_generated": True,
+        "_notes": [
+            f"{NUM_PATHS} paths on a {ANGLE_STEP}-degree circle.",
+            f"{len(DEFAULT_DORMANT)} dormant paths (placeholder IDs — replace with canonical set).",
+            "Fill in name, class, weight, and influence from the Codex corpus.",
+        ],
+        "paths": [make_entry(i) for i in range(1, NUM_PATHS + 1)],
+    }
+    print(json.dumps(registry, indent=2))
+
+
+if __name__ == "__main__":
+    main()

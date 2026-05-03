@@ -1,0 +1,30 @@
+{
+  "version": "0.1.0",
+  "source": "mfcs-omega",
+  "generated_at": "2026-04-24T16:58:28+00:00",
+  "views": [
+    {
+      "id": "mfcs-core",
+      "title": "MFCS Core",
+      "description": "Formal spec, proofs, and TLC traces."
+    },
+    {
+      "id": "omega-console",
+      "title": "OMEGA Console",
+      "description": "Operator-facing envelope and attractor surfaces."
+    }
+  ],
+  "invariants": [
+    "TypeOK",
+    "OutputWellFormed",
+    "LawCompliancePresent",
+    "AuditVisible"
+  ],
+  "oracle_state": {
+    "kernel": "stable",
+    "spatial_layer": "active",
+    "agents": "review_ready"
+  },
+  "last_run": {},
+  "peaks": []
+}

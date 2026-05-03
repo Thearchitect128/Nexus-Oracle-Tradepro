@@ -1,0 +1,8 @@
+59854984853104df5c353e2f681a15fc7924742f9a2e468c29af248dce45ce03  ./VERSION
+bf3a9e63c896f2bce43cfa444b4477994546fdcc21232e45cf005bef219e8eeb  ./docs/appendix/bridge-continuity.md
+54ceeae53b911c14d7113ff95ed3574f5999e0d4204e2fc055f5bc6eee85f80b  ./manifest.json
+9c3bea4c003191775ce1e2f42f475c77a54d749620c51cc8e6945f2a11a96442  ./spec/modules/BridgeContinuitySpec.tla
+4db03312e63c183968e27ab83f9162b8daed3d49cc10cf4ee1999cc47d4ba737  ./src/lib/bridge/traceClassifier.ts
+b2d67f81f6c01b547f89a5517e967fa283770ee828f5575864908a9becb42dea  ./test/bridge-classifier.test.ts
+fa85a6d806b82b7a09814f385e9cb5ee3947cca0a89dfb0ec27d5d9b24946809  ./traces/bridge-witness-fail.json
+663f425cdc2077cfde6367f4924215a42447a083df16bee6e2f5e6d843291505  ./traces/bridge-witness-pass.json

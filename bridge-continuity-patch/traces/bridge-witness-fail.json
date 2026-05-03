@@ -1,0 +1,8 @@
+{
+  "id": "bridge-witness-fail",
+  "steps": [
+    { "kind": "forward", "phi": true, "value": 0.001 },
+    { "kind": "reverse", "phi": false, "value": 0.499 },
+    { "kind": "steady", "phi": false, "value": 0.250 }
+  ]
+}

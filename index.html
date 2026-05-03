@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mystic Map v1.0</title>
+  <meta name="description" content="Mystic Map — symbolic system map by Mohammad. CC BY-NC 4.0">
+  <style>
+    :root {
+      --bg: #040813;
+      --bg-elev: #071022;
+      --card: rgba(8, 19, 38, 0.86);
+      --card-strong: #091a31;
+      --fg: #e8f4ff;
+      --muted: #92abc5;
+      --accent: #6ce8ff;
+      --accent-2: #8cff87;
+      --border: rgba(108, 232, 255, 0.26);
+      --warn: #f6e27a;
+      --danger: #ff7f9f;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+      color: var(--fg);
+      background:
+        radial-gradient(circle at 15% 20%, rgba(108, 232, 255, 0.16), transparent 28%),
+        radial-gradient(circle at 85% 10%, rgba(140, 255, 135, 0.12), transparent 25%),
+        radial-gradient(circle at 50% 90%, rgba(122, 88, 255, 0.2), transparent 34%),
+        var(--bg);
+      line-height: 1.6;
+    }
+
+    a { color: var(--accent); }
+
+    .layout {
+      max-width: 1180px;
+      margin: 0 auto;
+      padding: 1.25rem;
+    }
+
+    .panel {
+      backdrop-filter: blur(6px);
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      box-shadow: 0 0 0 1px rgba(108, 232, 255, 0.08), 0 25px 45px rgba(0, 0, 0, 0.35);
+    }
+
+    header {
+      padding: 1.4rem 1.25rem;
+      margin-bottom: 1rem;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: .85rem;
+    }
+
+    .hero-title h1 {
+      margin: 0;
+      letter-spacing: .18em;
+      font-size: clamp(1.3rem, 2.5vw, 1.95rem);
+    }
+
+    .hero-title p { margin: .2rem 0 0; color: var(--muted); }
+
+    .badge-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: .5rem;
+    }
+
+    .badge {
+      padding: .33rem .65rem;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      color: var(--muted);
+      font-size: .82rem;
+      letter-spacing: .04em;
+      background: rgba(8, 26, 49, 0.75);
+    }
+
+    main {
+      display: grid;
+      grid-template-columns: 1.15fr .85fr;
+      gap: 1rem;
+    }
+
+    @media (max-width: 980px) {
+      main { grid-template-columns: 1fr; }
+    }
+
+    .stack { display: grid; gap: 1rem; }
+
+    section { padding: 1rem 1.1rem; }
+
+    h2 {
+      margin: 0 0 .75rem;
+      font-size: 1.02rem;
+      letter-spacing: .15em;
+      text-transform: uppercase;
+      color: #d6f5ff;
+    }
+
+    .control-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: .7rem;
+    }
+
+    .chip {
+      border: 1px solid rgba(108, 232, 255, 0.3);
+      border-radius: 12px;
+      background: linear-gradient(180deg, rgba(12, 31, 56, 0.95), rgba(8, 20, 40, 0.95));
+      padding: .65rem .8rem;
+    }
+
+    .chip small { display: block; color: var(--muted); letter-spacing: .06em; font-size: .72rem; }
+    .chip strong { font-size: 1.02rem; color: var(--accent-2); }
+
+    .exports {
+      display: flex;
+      flex-wrap: wrap;
+      gap: .55rem;
+    }
+
+    .exports a {
+      text-decoration: none;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: .46rem .65rem;
+      background: var(--card-strong);
+      font-size: .85rem;
+    }
+
+    .archive-list {
+      display: grid;
+      gap: .55rem;
+      margin-top: .55rem;
+    }
+
+    .archive-item {
+      border: 1px solid rgba(108, 232, 255, 0.22);
+      border-radius: 12px;
+      padding: .72rem;
+      background: rgba(10, 25, 47, 0.72);
+    }
+
+    .archive-item strong { color: var(--accent); display: block; margin-bottom: .25rem; }
+    .archive-item p { margin: 0; color: var(--muted); font-size: .9rem; }
+
+    .table-toolbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: .6rem;
+      flex-wrap: wrap;
+      margin-bottom: .65rem;
+    }
+
+    input[type='search'] {
+      width: min(420px, 100%);
+      padding: .5rem .65rem;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: #08192f;
+      color: var(--fg);
+    }
+
+    table { width: 100%; border-collapse: collapse; font-size: .9rem; }
+    th, td { text-align: left; padding: .53rem .35rem; border-bottom: 1px solid rgba(108, 232, 255, 0.2); vertical-align: top; }
+    th { color: var(--muted); font-weight: 500; }
+    td code { color: #b9cae0; font-size: .8rem; }
+
+    .helper {
+      font-size: .82rem;
+      color: var(--muted);
+      margin: .45rem 0 0;
+    }
+
+    pre {
+      margin: 0;
+      white-space: pre-wrap;
+      word-break: break-word;
+      background: #071629;
+      border: 1px solid rgba(108, 232, 255, 0.22);
+      border-radius: 10px;
+      padding: .68rem .75rem;
+      color: #d5e3f0;
+      font-size: .82rem;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    }
+
+    footer {
+      margin-top: 1rem;
+      padding: .95rem 1.1rem;
+      text-align: center;
+      color: var(--muted);
+    }
+  </style>
+</head>
+<body>
+  <div class="layout">
+    <header class="panel" id="hero">
+      <div class="hero-title">
+        <h1>OMEGA CONTROL SURFACE</h1>
+        <p>Loading manifest and refinement archive…</p>
+      </div>
+      <div class="badge-row" id="hero-badges">
+        <span class="badge">Initializing</span>
+      </div>
+    </header>
+
+    <main>
+      <div class="stack">
+        <section class="panel" id="tuner">
+          <h2>System Tuner</h2>
+          <div class="control-grid" id="control-grid"></div>
+          <p class="helper">Reference-inspired metrics for fast diagnostic snapshots and deterministic iteration.</p>
+        </section>
+
+        <section class="panel" id="files">
+          <h2>File Index</h2>
+          <div class="table-toolbar">
+            <input id="path-filter" type="search" placeholder="Filter by path (e.g. docs/, exports/, .svg)">
+            <span id="file-count" class="badge"></span>
+          </div>
+          <table id="file-table">
+            <thead><tr><th>Path</th><th>Size</th><th>SHA-256</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </section>
+      </div>
+
+      <div class="stack">
+        <section class="panel" id="downloads">
+          <h2>Primary Exports</h2>
+          <div class="exports" id="download-links"></div>
+        </section>
+
+        <section class="panel" id="archive">
+          <h2>Refinement Archive</h2>
+          <div class="archive-list" id="archive-list"></div>
+        </section>
+
+        <section class="panel" id="integrity">
+          <h2>Integrity Command</h2>
+          <pre>jq -r '.files[] | "\(.sha256)  \(.path)"' manifest.json > checksums.txt
+sha256sum -c checksums.txt</pre>
+        </section>
+      </div>
+    </main>
+
+    <footer class="panel" id="footer">Loading…</footer>
+  </div>
+
+  <script>
+    const archiveCards = [
+      {
+        title: 'Neon Resonance Tuner',
+        note: 'Adopted high-contrast cyan + magenta glow accents and compact parameter cards for “Hue / Complexity / Frequency / Speed”.'
+      },
+      {
+        title: 'Triadic Reasoning Diagram',
+        note: 'Integrated Observer–Mirror–Truth framing into this index as “System Tuner” + “Refinement Archive” sections to support explainable iteration.'
+      },
+      {
+        title: 'Mission Console Layout',
+        note: 'Applied cockpit-like panel hierarchy: telemetry at top, active controls center, persistent nav/integrity blocks at bottom.'
+      },
+      {
+        title: 'Node-Field Scan View',
+        note: 'Emphasized sparse dark-space background and bright node trajectories to improve signal detection against dense data tables.'
+      }
+    ];
+
+    function formatKB(bytes) {
+      return `${(bytes / 1024).toFixed(1)} KB`;
+    }
+
+    function buildControls(manifest) {
+      const paths = manifest.files.map(f => f.path);
+      const svgCount = paths.filter(p => p.endsWith('.svg')).length;
+      const docsCount = paths.filter(p => p.startsWith('docs/')).length;
+      const exportCount = paths.filter(p => p.startsWith('exports/')).length;
+      const avgSize = manifest.files.reduce((sum, f) => sum + f.size, 0) / Math.max(1, manifest.files.length);
+
+      const items = [
+        ['Archive Nodes', manifest.file_count],
+        ['SVG Assets', svgCount],
+        ['Docs Entries', docsCount],
+        ['Export Assets', exportCount],
+        ['Mean File Size', formatKB(avgSize)],
+        ['Manifest Version', manifest.version]
+      ];
+
+      document.getElementById('control-grid').innerHTML = items.map(([label, value]) => `
+        <article class="chip">
+          <small>${label}</small>
+          <strong>${value}</strong>
+        </article>
+      `).join('');
+    }
+
+    function renderArchiveCards() {
+      document.getElementById('archive-list').innerHTML = archiveCards.map(card => `
+        <article class="archive-item">
+          <strong>${card.title}</strong>
+          <p>${card.note}</p>
+        </article>
+      `).join('');
+    }
+
+    async function loadManifest() {
+      const res = await fetch('manifest.json');
+      const manifest = await res.json();
+
+      document.getElementById('hero').querySelector('.hero-title').innerHTML = `
+        <h1>${manifest.project.toUpperCase()} · SYSTEM INDEX</h1>
+        <p>Archived references applied for deterministic refinement.</p>
+      `;
+
+      document.getElementById('hero-badges').innerHTML = `
+        <span class="badge">${manifest.license}</span>
+        <span class="badge">${manifest.file_count} files</span>
+        <span class="badge">Generated ${new Date(manifest.generated).toLocaleString()}</span>
+      `;
+
+      const keyExports = [
+        'exports/composition_6000px.jpg',
+        'exports/composition_6000px.tif',
+        'exports/composition_high_contrast.png',
+        'exports/composition_no_glow.png',
+        'source/master_composition_v1.0.svg',
+        'docs/legend_onepage.pdf'
+      ];
+
+      const downloadHtml = keyExports
+        .map(path => manifest.files.find(f => f.path === path))
+        .filter(Boolean)
+        .map(file => `<a href="${file.path}" download>${file.path.split('/').pop()}</a>`)
+        .join('');
+      document.getElementById('download-links').innerHTML = downloadHtml || '<p class="helper">No primary exports found in manifest.</p>';
+
+      const sorted = [...manifest.files].sort((a, b) => a.path.localeCompare(b.path));
+      const tbody = document.querySelector('#file-table tbody');
+      const fileCount = document.getElementById('file-count');
+      const filterInput = document.getElementById('path-filter');
+
+      function drawRows(query = '') {
+        const q = query.trim().toLowerCase();
+        const rows = sorted.filter(f => !q || f.path.toLowerCase().includes(q));
+
+        tbody.innerHTML = rows.map(f => `
+          <tr>
+            <td><a href="${f.path}">${f.path}</a></td>
+            <td>${formatKB(f.size)}</td>
+            <td><code>${f.sha256.substring(0, 16)}…</code></td>
+          </tr>
+        `).join('');
+
+        fileCount.textContent = `${rows.length} / ${sorted.length} visible`;
+      }
+
+      filterInput.addEventListener('input', e => drawRows(e.target.value));
+
+      buildControls(manifest);
+      renderArchiveCards();
+      drawRows();
+
+      document.getElementById('footer').innerHTML = `${manifest.project} v${manifest.version} · ${manifest.author} · <a href="manifest.json">manifest.json</a>`;
+    }
+
+    loadManifest().catch(err => {
+      document.body.innerHTML = `<p style="padding:2rem;color:#ff7f9f">Failed to load manifest.json: ${err}</p>`;
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,5 @@
+﻿Gate,Symbol,Meaning,Visual
+Conjunction,∧,φ ∧ ψ,Cyan pulse when both true
+Disjunction,∨,φ ∨ ψ,Gold pulse when either true
+Negation,¬,¬φ,Red pulse when false
+Biconditional,↔,φ ↔ ψ,Rotating ∞ when equivalent

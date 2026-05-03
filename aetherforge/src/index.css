@@ -1,0 +1,24 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg: #0b0c15;
+  --panel: rgba(20, 22, 35, 0.85);
+  --accent: #61dafb;
+  --accent2: #a78bfa;
+  --text: #e4e6f0;
+  --muted: #8b8fa3;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Inter', system-ui, sans-serif;
+}
+
+.glass {
+  background: var(--panel);
+  backdrop-filter: blur(20px) saturate(140%);
+  border: 1px solid rgba(255,255,255,0.08);
+}

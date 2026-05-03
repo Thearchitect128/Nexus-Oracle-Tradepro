@@ -1,0 +1,14 @@
+# 671.6 Hz Audio Test Suite v1.0 - SHA256 Checksums
+# Generated on 2026-04-24T19:44:23Z
+# This file serves as the cryptographic anchor for package integrity
+
+4bdaf4b41a8c6f33be20a1893cd5ab4815858e1b9f9e1ee5d4ddc4ebf50bb2dd  MANIFEST.schema.json
+4c449493c9d90f78fbde28bdd5ab3721d28d4b4b56e14694708d2e7b587905e1  README.md
+e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  analysis/comparison
+e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  analysis/spectrogram
+e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  analysis/spectrum_analysis
+e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  audio/clean
+e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  audio/harmonics
+e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  audio/safe
+e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  audio/sweep
+af1d06bef0e388b7427d7a70fbe8e7cda55c912b16d088957620c419505044fc  docs/AUDIO_TEST_SUITE_671_6HZ.md

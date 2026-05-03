@@ -1,0 +1,1 @@
+{"shape":"regular_hexagon","edge_length":30.0,"center":[0,0],"symmetry":"C6","constraints":["equal_edges","internal_angle_120","derived_geometry_only"],"canonical_vertices":[{"x":30,"y":0},{"x":15,"y":25.980762},{"x":-15,"y":25.980762},{"x":-30,"y":0},{"x":-15,"y":-25.980762},{"x":15,"y":-25.980762}],"adjacency":[[1,5],[0,2],[1,3],[2,4],[3,5],[4,0]]}

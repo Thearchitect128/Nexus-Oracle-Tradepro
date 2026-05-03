@@ -1,0 +1,6 @@
+# Placeholder checksums; regenerate with tools/generate_checksums.py
+<sha256>  README.md
+<sha256>  manifest.json
+<sha256>  spec/MFCS.tla
+<sha256>  tlc/run.sh
+<sha256>  tools/package.sh

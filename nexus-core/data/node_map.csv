@@ -1,0 +1,7 @@
+id,node_id,x,y,label,number,weight,guardian,triad,hexagram,type,dormant
+1,C01,50,50,Central Axis,1,0.95,Ouroboros,Origin,1,central,false
+2,P01,20,80,Phoenix Gate,2,0.65,Phoenix,Ignis,11,cluster,false
+3,D01,80,80,Dragon Gate,3,0.70,Dragon,Aether,34,cluster,false
+4,L01,20,20,Lion Gate,4,0.60,Lion,Terra,43,cluster,false
+5,R01,80,20,Raven Gate,5,0.55,Raven,Umbra,29,cluster,false
+6,B01,35,35,Butterfly Echo,6,0.40,Butterfly,Aqua,14,generic,true

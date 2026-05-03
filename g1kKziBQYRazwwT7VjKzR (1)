@@ -1,0 +1,83 @@
+# Digital Mirror Polish Package — Acceptance Criteria
+
+## Deliverable 1: README.md (`docs/README.md`)
+
+| # | Criterion | Verification |
+|---|-----------|--------------|
+| 1.1 | Contains project summary with all six canonical states | Grep for `IDLE`, `EVAL`, `SELECT`, `EXEC`, `POST`, `HARDSTOP` |
+| 1.2 | Quick-start section with clone, verify, regenerate commands | Run commands in a fresh clone |
+| 1.3 | Architecture overview with text diagram | Visual inspection |
+| 1.4 | Canonical state name table (9 entries) | Count rows: 6 states + LSPS + HardstopRecoverThm + HardstopToIdle |
+| 1.5 | Figures section with alt text + captions for all 3 figures | Each figure has ≥2-sentence alt text and a caption |
+| 1.6 | Reproduction steps with prerequisites | Steps produce identical output when run |
+| 1.7 | Artifact mapping table (10 entries) | All files listed with correct relative paths |
+| 1.8 | Diagram regeneration section with Graphviz DOT equivalents | DOT source compiles with `dot -Tsvg` |
+| 1.9 | Accessibility section with completed checklist | All 8 items checked |
+| 1.10 | Badges (license, build, figures, a11y) | Render correctly on GitHub |
+| 1.11 | Suggested keywords (≥8 terms) | Present and relevant to MFCS domain |
+
+## Deliverable 2: One-Page Diagram Sheet (`paper/figures/diagram_sheet.pdf`)
+
+| # | Criterion | Verification |
+|---|-----------|--------------|
+| 2.1 | Single US-Letter page (8.5×11 in) | Check PDF page dimensions |
+| 2.2 | Contains all three diagrams: ring, latch flow, recovery | Visual inspection of panels (a), (b), (c) |
+| 2.3 | Vector format (scalable without pixelation) | Zoom to 400% in PDF viewer — edges remain sharp |
+| 2.4 | Title header with canonical state list | Top of page |
+| 2.5 | Footer with generation attribution | Bottom of page |
+| 2.6 | Panel labels (a), (b), (c) match figure numbering | Cross-reference with README |
+| 2.7 | Available in both SVG and PDF | Both `diagram_sheet.svg` and `diagram_sheet.pdf` exist |
+
+## Deliverable 3: Figure Set (`paper/figures/fig[1-3]_*`)
+
+| # | Criterion | Verification |
+|---|-----------|--------------|
+| 3.1 | Three figures, each in SVG + PDF (6 files total) | `ls paper/figures/fig*.{svg,pdf}` returns 6 files |
+| 3.2 | fig1: Shows 5-state ring + HARDSTOP spur + HardstopToIdle arc | Visual: ring of 5 + box below + green arrow back |
+| 3.3 | fig2: Shows 4-stage LSPS pipeline with feedback loop | Visual: Latch→Select→Post→Switch + return arc |
+| 3.4 | fig3: Shows 4-step recovery path + HardstopRecoverThm box | Visual: HARDSTOP→Diagnose→Rollback→Validate→IDLE + theorem |
+| 3.5 | All canonical names spelled exactly (case-sensitive) | Grep SVG source for each name |
+| 3.6 | WCAG AA colour contrast (≥4.5:1 on white) | Test palette against #FFFFFF |
+| 3.7 | No information conveyed by colour alone | Shapes + labels distinguish all elements |
+| 3.8 | No copyrighted or external images | Source script generates all graphics procedurally |
+| 3.9 | Alt text provided in README for each figure | ≥2 sentences per figure |
+
+## Cross-Cutting
+
+| # | Criterion | Verification |
+|---|-----------|--------------|
+| C.1 | Manifest exists at `tools/manifest.txt` | `sha256sum -c tools/manifest.txt` all OK |
+| C.2 | Generator script is self-contained | `python3 paper/figures/gen_diagrams.py` with only matplotlib |
+| C.3 | No files published or pushed to any remote | Local-only; user runs push commands manually |
+| C.4 | Naming consistency across all files | All use: IDLE, EVAL, SELECT, EXEC, POST, HARDSTOP, LSPS, HardstopRecoverThm, HardstopToIdle |
+
+---
+
+## Verification Commands
+
+```bash
+# Run all checks in sequence:
+cd mfcs
+
+# 1. Checksum verification
+sha256sum -c tools/manifest.txt
+
+# 2. File presence
+ls -la paper/figures/fig1_state_ring.{svg,pdf} \
+       paper/figures/fig2_latch_flow.{svg,pdf} \
+       paper/figures/fig3_hardstop_recovery.{svg,pdf} \
+       paper/figures/diagram_sheet.{svg,pdf} \
+       paper/figures/gen_diagrams.py \
+       docs/README.md \
+       tools/manifest.txt
+
+# 3. Canonical name consistency (SVG sources)
+for name in IDLE EVAL SELECT EXEC POST HARDSTOP LSPS HardstopRecoverThm HardstopToIdle; do
+  echo -n "$name: "
+  grep -rl "$name" paper/figures/*.svg docs/README.md | wc -l
+done
+
+# 4. Regeneration test
+python3 paper/figures/gen_diagrams.py
+sha256sum -c tools/manifest.txt
+```

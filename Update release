@@ -1,0 +1,420 @@
+Here is the v0.4.0 release spec.
+
+⸻
+
+v0.4.0 — True 3D Envelope Geometry
+
+Objective
+
+Replace the current degenerate 3D envelope with a genuinely non-degenerate 3D decision geometry while preserving the existing separation of concerns:
+
+* Spec proves structure and invariants
+* Kernel computes membership/classification
+* Mirror records honest binding metadata
+* UI displays results, not proofs
+
+This release corrects the geometry layer only. It does not broaden public API commitments yet.
+
+⸻
+
+Release thesis
+
+Current status is honest but limited:
+
+* 2-peak mode is verified and useful
+* 3D mode is representationally degenerate
+* Advanced 3D toggle does not yet carry full decision meaning
+
+v0.4.0 changes that by making the third dimension structurally real.
+
+⸻
+
+Core change
+
+Existing problem
+
+The current accumulation rule induces collinearity in the projected geometry, effectively collapsing the 3-point front into an affine rank-1 structure in (r, s) space.
+
+Representative failure mode:
+
+s = \frac{r - 2}{4}
+
+This makes one point redundant and prevents the front from acting like a true triangular envelope.
+
+New rule
+
+Adopt nonlinear s accumulation during the compress branch:
+
+BuildCompress ==
+  /\ IF phi >= K
+     THEN /\ phi' = phi - 1
+          /\ r'   = r + 4
+          /\ s'   = s + (phi - K + 1)
+     ELSE ...
+
+Intended effect
+
+This causes s to grow as a function of distance above threshold, breaking the fixed linear dependency and restoring affine rank 2 across reachable front points.
+
+⸻
+
+Scope
+
+In scope
+
+* ConversionFront_v3.tla geometry correction
+* reachable-state validation of non-degeneracy
+* mirror contract honesty updates
+* kernel support for true 3D classification
+* operator UI wording cleanup where needed
+* regression tests for 2D compatibility and 3D divergence
+
+Out of scope
+
+* public API freeze
+* client SDK commitments
+* external downstream integrations
+* law changes to φ-A itself
+
+This release upgrades the geometry substrate, not the law.
+
+⸻
+
+Formal targets
+
+1. Spec update
+
+File
+
+* ConversionFront_v3.tla
+
+Required changes
+
+* modify BuildCompress
+* ensure the reachable front no longer lies on a single affine line in (r,s) projection
+* preserve existing safety invariants unless explicitly superseded
+
+New derived property
+
+Add a property or checked theorem equivalent to:
+
+There exist reachable front points P_1, P_2, P_3 such that they are not collinear in projected (r,s) space.
+
+Possible formal expression shape:
+
+NonDegenerateFront ==
+  \E p1, p2, p3 \in ReachableFront :
+    ~CollinearRS(p1, p2, p3)
+
+If you already have front extraction helpers, bind to them. If not, add minimal helpers without broadening spec complexity.
+
+⸻
+
+2. Theorem / model target
+
+New property
+
+True3DFrontProperty
+
+Meaning:
+
+The advanced front has affine rank 2 under reachable states.
+
+This does not need to claim full volumetric richness; it only needs to prove the front is no longer collapsed.
+
+TLC goal
+
+Model check that:
+
+* old safety still holds
+* non-degeneracy now holds
+* previous φ-attractor law remains unaffected
+
+Important separation:
+
+* φ-A law still states:
+\[
+(\approx \↻ \land \neg \↺) \Rightarrow G_\phi
+\]
+
+* v0.4.0 only changes the geometric expressiveness of the envelope used by runtime evaluation
+
+⸻
+
+Mirror contract changes
+
+Objective
+
+Remove honesty caveats where real 3D structure now exists.
+
+Current state
+
+Some bindings likely describe 3D as partial, faceted, or degenerate.
+
+Required update
+
+Revise example contracts so they distinguish:
+
+* 2D verified mode
+* 3D true-front mode
+
+Example direction
+
+two_peak_example.json
+
+Keep as honest 2D:
+
+{
+  "geometryMode": "2D_VERIFIED",
+  "phiFamily": ["Facet-A"]
+}
+
+three_peak_example.json
+
+Upgrade to honest non-degenerate 3D:
+
+{
+  "geometryMode": "3D_TRUE_FRONT",
+  "phiFamily": ["Facet-A", "Facet-C"],
+  "frontRank": 2,
+  "degenerate": false
+}
+
+Do not overclaim polyhedral fullness unless the reachable structure justifies it. “True front” is safer than “full volume” unless verified.
+
+⸻
+
+Kernel changes
+
+Objective
+
+Make runtime geometry classification reflect the corrected front.
+
+File
+
+* oracleKernelCore.ts
+
+Required additions or updates
+
+New or updated fields
+
+* geometryMode
+* frontRank
+* degenerate
+* activeFacetSet
+* envelopeClass
+
+Existing fields that must remain coherent
+
+* inPhiAttractor
+* attractorId
+* lawCompliance
+
+Runtime rule
+
+The kernel must compute envelope membership against the corrected geometry, not a cosmetically altered projection.
+
+Example response shape
+
+type EnvelopeEvaluation = {
+  insideEnvelope: boolean;
+  envelopeClass: "TWO_PEAK" | "THREE_PEAK_TRUE_FRONT";
+  geometryMode: "2D_VERIFIED" | "3D_TRUE_FRONT";
+  frontRank: 1 | 2;
+  degenerate: boolean;
+  activeFacetSet: string[];
+  inPhiAttractor: boolean;
+  attractorId: "G_phi" | null;
+  lawCompliance: {
+    phiA: boolean;
+  };
+};
+
+⸻
+
+UI changes
+
+Objective
+
+Make the operator surface accurately reflect geometry class without pretending to prove anything.
+
+Target surfaces
+
+* IntelBlocks
+* SignalsPage
+* any advanced-mode badge or geometry descriptor
+
+Required display behavior
+
+In 2D mode
+
+Show something like:
+
+* Geometry: 2D Verified
+* Front Rank: 1
+
+In corrected 3D mode
+
+Show:
+
+* Geometry: 3D True Front
+* Front Rank: 2
+* Degeneracy: No
+
+Important wording rule
+
+UI should display:
+
+* membership
+* geometry class
+* attractor consequence
+
+UI should not claim:
+
+* theorem proof
+* premise derivation
+* model completeness beyond verified scope
+
+Good:
+
+In Phi Attractor
+Geometry: 3D True Front
+
+Bad:
+
+Proven here that near-recursion premises hold
+
+That remains the proof layer’s responsibility.
+
+⸻
+
+Regression requirements
+
+1. No break to φ-A law path
+
+* existing attractor classifications remain stable where geometry change should not affect them
+* inPhiAttractor semantics must not drift
+
+2. 2D mode unchanged
+
+* two_peak_example.json must evaluate identically to v0.3.1 unless fields were renamed for clarity
+* no regressions in verified 2D workflows
+
+3. 3D mode meaningfully changes
+
+At least one realistic input class must now yield a different result than the degenerate implementation.
+
+This is essential. If no outcome changes, the geometry fix is not operationally meaningful.
+
+4. P2 non-redundancy
+
+There must exist reachable states where the middle/front point participates materially in classification.
+
+5. Honest metadata
+
+No mirror or UI text should retain “advanced 3D” language if it still implies optional cosmetics. It must now indicate real geometry.
+
+⸻
+
+Test plan
+
+Spec tests
+
+* add or update TLC config for True3DFrontProperty
+* keep PhiAttractorProperty
+* check no regression in envelope safety invariants
+
+Kernel tests
+
+Add cases for:
+
+* 2D verified unchanged
+* 3D front rank is 2
+* degenerate === false in corrected 3D example
+* classification changes for at least one input set
+* inPhiAttractor remains correct under prior law-driven examples
+
+UI tests
+
+* badge text reflects geometry mode
+* advanced 3D no longer described ambiguously
+* no operator copy implies proof of premises
+
+⸻
+
+Acceptance criteria
+
+v0.4.0 is complete only if all are true:
+
+1. Affine rank 2 is established for reachable 3-point front geometry
+2. P2 is non-redundant
+3. At least one real evaluation outcome changes because of corrected 3D geometry
+4. 2D verified mode remains stable
+5. Mirror metadata is honest and updated
+6. Kernel returns corrected geometry fields
+7. UI surfaces geometry truthfully
+8. φ-A law behavior remains intact
+
+⸻
+
+Suggested docs update
+
+New doc
+
+docs/releases/v0.4.0-true-3d-envelope.md
+
+Suggested sections:
+
+* why prior 3D was degenerate
+* what changed mathematically
+* what changed operationally
+* what did not change
+* relation to φ-A law
+* path to v0.4.1 API stabilization
+
+Add note to law docs
+
+Make explicit:
+
+φ-A is unchanged in v0.4.0.
+This release alters the geometry through which runtime envelope classification is computed, not the theorem establishing the attractor implication.
+
+⸻
+
+Release artifact draft
+
+Commit message
+
+feat(envelope-v3): make advanced geometry non-degenerate and operationally real
+• modify ConversionFront_v3.tla with nonlinear s accumulation
+• add True3DFrontProperty to verify affine rank 2 front geometry
+• eliminate front collinearity in reachable (r,s) projection
+• update mirror contracts with honest 3D true-front metadata
+• extend oracleKernelCore with geometryMode, frontRank, degenerate, activeFacetSet
+• surface true-front geometry in operator UI
+• preserve phi-A attractor law semantics and 2D verified behavior
+• verify P2 non-redundancy and at least one outcome divergence from degenerate 3D
+
+Tag
+
+v0.4.0-true-3d-envelope
+
+⸻
+
+Next release after this
+
+v0.4.1
+
+Freeze and expose:
+
+* /api/v1/envelope/evaluate
+* public response contract
+* downstream client compatibility
+
+That should happen only after v0.4.0 acceptance is complete.
+
+If you want, I can turn this into a ready-to-commit file pack next:
+
+* phi-A note,
+* v0.4.0 release doc,
+* and a True3DFrontProperty theorem stub.

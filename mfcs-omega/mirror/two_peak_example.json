@@ -1,0 +1,23 @@
+{
+  "schema_version": "1.1.0",
+  "metadata": {
+    "dimension": 2,
+    "laws": [
+      {
+        "id": "phi-A",
+        "name": "Near-Recursion Attractor Law",
+        "informal": "Near-recursion plus non-reversibility generates a φ-governed attractor.",
+        "formal": "(∃ n ≥ 1: d(f^n(x), x) ≤ ε) ∧ ¬∃ f⁻¹ ⇒ x_t → G_φ",
+        "compact_symbolic": "≈↻ ∧ ¬↺ ⇒ G_φ",
+        "governing_facets": ["Facet-A", "Facet-C"],
+        "attractor_set": "G_phi"
+      }
+    ]
+  },
+  "attractor": {
+    "id": "G_phi",
+    "governing_facets": ["Facet-A", "Facet-C"],
+    "admissibility": "W <= M_min",
+    "envelope_family": "phi-weighted"
+  }
+}
