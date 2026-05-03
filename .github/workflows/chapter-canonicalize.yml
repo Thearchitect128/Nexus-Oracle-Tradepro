@@ -1,0 +1,27 @@
+name: Chapter canonicalize
+
+on:
+  push:
+    paths:
+      - 'Chapter10_96Path_Extended_Channel_Map.txt'
+      - 'scripts/canonicalize_chapter10.py'
+
+jobs:
+  canonicalize:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+      - name: Run canonicalization
+        run: |
+          python3 scripts/canonicalize_chapter10.py Chapter10_96Path_Extended_Channel_Map.txt
+      - name: Add artifact to commit (optional)
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add artifacts/chapter10.canonical.json
+          git commit -m "chore: canonicalize Chapter10 -> artifacts/chapter10.canonical.json [ci skip]" || echo "no changes"
+          git push origin HEAD:refs/heads/ci/canonicalize || echo "push skipped"
